@@ -83,24 +83,114 @@ is
    procedure Create_Snapshot (
       Obj     : in out Object_Type;
       Quara   :        Boolean;
-      Snap_id :    out Snapshot_ID_Type)
+      Snap_ID :    out Snapshot_ID_Type)
    is
    begin
-      null;
+
+      --
+      --  As long as we are creating a snapshot or
+      --  the superblock the new snapshot belongs to is being
+      --  written we do not allow the creation of a new
+      --  snapshot.
+      --
+      if not Obj.Creating_Snapshot or else
+         not Obj.Secure_Superblock
+      then
+         if not Cache_Dirty (Obj) then
+            Debug.Print_String ("Creating_Snapshot: not dirty no SN neede: " &
+               Debug.To_String (Debug.Uint64_Type (Obj.Last_Snapshot_ID)));
+            Snap_ID := Obj.Last_Snapshot_ID;
+            return;
+         end if;
+
+         Obj.Creating_Snapshot := True;
+         Obj.Creating_Quaratine_Snapshot := Quara;
+         Obj.Next_Snapshot_Id := Obj.Last_Snapshot_ID + 1;
+         Debug.Print_String ("Creating_Snapshot: id: " &
+            Debug.To_String (Debug.Uint64_Type (Obj.Next_Snapshot_Id)));
+      end if;
+      Debug.Print_String ("Creating_Snapshot: old id: " &
+         Debug.To_String (Debug.Uint64_Type (Obj.Next_Snapshot_Id)));
+
+      Snap_ID := Obj.Next_Snapshot_Id;
    end Create_Snapshot;
+
+   procedure Create_Snapshot_Internal (
+      Obj      : in out Object_Type;
+      Progress :    out Boolean)
+   is
+   begin
+      Delcare_Cache_Flusher_Active :
+      declare
+         Cache_Flusher_Active : constant Boolean :=
+            Cache_Flusher.Active (Obj.Cache_Flusher_Obj);
+      begin
+         if Cache_Flusher_Active or else Obj.Secure_Superblock then
+            Debug.Print_String ("Create_Snapshot_Internal: "
+                & "flusher active: " & Debug.To_String (Cache_Flusher_Active)
+                & " Secure_Superblock: "
+                & Debug.To_String (Obj.Secure_Superblock));
+            Progress := False;
+            return;
+         end if;
+      end Delcare_Cache_Flusher_Active;
+      Debug.Print_String ("Create_Snapshot_Internal: attempt to create");
+
+      Declare_Cache_Dirty :
+      declare
+         Cache_Dirty : Boolean := False;
+      begin
+
+         Check_Cache_Dirty :
+         for Cache_Index in Cache.Cache_Index_Type loop
+            if Cache.Dirty (Obj.Cache_Obj, Cache_Index) then
+
+               Cache_Dirty := True;
+
+               Cache_Flusher.Submit_Request (
+                  Obj.Cache_Flusher_Obj,
+                  Cache.Flush (Obj.Cache_Obj, Cache_Index),
+                  Cache_Index);
+            end if;
+         end loop Check_Cache_Dirty;
+
+         --
+         --  In case we have to flush the Cache, wait until we have
+         --  finished doing that.
+         --
+         if not Cache_Dirty then
+            Debug.Print_String ("Create_Snapshot_Internal snapshot created: "
+               & "gen: " & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen)));
+
+            Obj.Superblocks (Obj.Cur_SB).Snapshots (
+               Curr_Snap (Obj)).Flags := (
+                  if Obj.Creating_Quaratine_Snapshot then 1 else 0);
+            Obj.Cur_Gen := Obj.Cur_Gen  + 1;
+            Obj.Creating_Snapshot := False;
+            Obj.Secure_Superblock := True;
+         else
+            Debug.Print_String ("Create_Snapshot_Internal: cache dirty"
+               & " wait for flusher");
+         end if;
+         Progress := True;
+      end Declare_Cache_Dirty;
+   end Create_Snapshot_Internal;
 
    function Snapshot_Creation_Complete (
       Obj     : Object_Type;
-      Snap_id : Snapshot_ID_Type)
+      Snap_ID : Snapshot_ID_Type)
    return Boolean
    is
    begin
-      --  DUMMY
-      if Obj.Seal_Generation = True and then Snap_id /= 0 then
+      Debug.Print_String ("Snapshot_Creation_Complete: " &
+         Debug.To_String (Debug.Uint64_Type (Obj.Last_Snapshot_ID))
+         & " = "
+         & Debug.To_String (Debug.Uint64_Type (Snap_ID)));
+      if Obj.Last_Snapshot_ID = Snap_ID then
          return True;
+      else
+         return False;
       end if;
-
-      return False;
    end Snapshot_Creation_Complete;
 
    --  function Superblock_Snapshot_Slot (SB : Superblock_Type)
@@ -134,8 +224,14 @@ is
             Snapshot_Keep (
                Obj.Superblocks (Obj.Cur_SB).Snapshots (Snap_ID))
          then
-            List (Snap_ID) :=  Obj.Superblocks (
-               Obj.Cur_SB).Snapshots (Snap_ID).ID;
+            List (Snap_ID) := Snapshot_ID_Storage_Type (Obj.Superblocks (
+               Obj.Cur_SB).Snapshots (Snap_ID).Gen);
+
+            Debug.Print_String ("Active_Snapshot_Ids: "
+               & "slot: "
+               & Debug.To_String (Debug.Uint64_Type (Snap_ID))
+               & " id: "
+               & Debug.To_String (Debug.Uint64_Type (List (Snap_ID))));
          else
             List (Snap_ID) := Snapshot_ID_Storage_Type (0);
          end if;
@@ -244,6 +340,8 @@ is
    is
          Next_Snap : Snapshots_Index_Type := Curr_Snap (Obj);
    begin
+      --  XXX make sure we end up at the same idx in case
+      --  there is no free slot
       Loop_Snap_Slots :
       for Idx in Snapshots_Index_Type loop
          Next_Snap := (
@@ -258,9 +356,6 @@ is
             not Snapshot_Keep (Obj.Superblocks (Obj.Cur_SB).
                Snapshots (Next_Snap));
       end loop Loop_Snap_Slots;
-      if Next_Snap = Curr_Snap (Obj) then
-         raise Program_Error;
-      end if;
       return Next_Snap;
    end Next_Snap_Slot;
 
@@ -303,6 +398,8 @@ is
             Snapshot_ID_Storage_Type (Snap_ID);
       end Declare_Tree;
 
+      Debug.Print_String ("Create_New_Snapshot: Last_Snapshot_ID: "
+         & Debug.To_String (Debug.Uint64_Type (Obj.Last_Snapshot_ID)));
       Obj.Last_Snapshot_ID := Snap_ID;
       Obj.Superblocks (Obj.Cur_SB).Snapshots (Snap).Valid := 1;
       Obj.Superblocks (Obj.Cur_SB).Curr_Snap :=
@@ -338,6 +435,16 @@ is
    begin
 
       pragma Debug (Debug.Print_String (To_String (Obj)));
+
+      -------------------------
+      --  Snapshot handling  --
+      -------------------------
+
+      if Obj.Creating_Snapshot then
+         Debug.Print_String ("Creating_Snapshot: " &
+            Debug.To_String (Obj.Creating_Snapshot));
+         Create_Snapshot_Internal (Obj, Progress);
+      end if;
 
       --------------------------
       --  Free-tree handling  --
@@ -560,11 +667,28 @@ is
             --  FIXME why is Obj.Seal_Generation check not necessary?
             --  that mainly is intended to block write primitives--
             --
-            if Obj.Secure_Superblock then
+            if Obj.Secure_Superblock or else Obj.Creating_Snapshot then
+               Debug.Print_String ("Secure_Superblock or Seal_Generation");
                exit Loop_Splitter_Generated_Prims;
             end if;
 
             Splitter.Drop_Generated_Primitive (Obj.Splitter_Obj);
+
+            Debug.Print_String ("Virtual_Block_Device: prim: "
+               & Primitive.To_String (Prim) & " "
+               & "SB: " & Debug.To_String (Debug.Uint64_Type (Obj.Cur_SB))
+               & " SN: " & Debug.To_String (Debug.Uint64_Type (
+                  Obj.Superblocks (Obj.Cur_SB).Curr_Snap))
+               & " " & Debug.To_String (Debug.Uint64_Type (
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (
+                     Curr_Snap (Obj)).PBA)) & " "
+               & Debug.To_String (Debug.Uint64_Type (
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (
+                     Curr_Snap (Obj)).Gen)) & " "
+               & Debug.To_String (
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (
+                     Curr_Snap (Obj)).Hash) & " "
+               );
 
             --
             --  For every new Request, we have to use the currlently active
@@ -1072,8 +1196,94 @@ is
                   Sync_Superblock.Peek_Completed_Generation (
                      Obj.Sync_SB_Obj, Prim);
 
+               Obj.Last_Snapshot_ID  := Obj.Next_Snapshot_Id;
+               Debug.Print_String ("Loop_Sync_SB_Completed_Prims: "
+                  & "Last_Snapshot_ID: "
+                  & Debug.To_String (Debug.Uint64_Type (
+                     Obj.Last_Snapshot_ID)));
+
+               --
+               --  Look for a new snapshot slot. If we cannot find one
+               --  we manual intervention b/c there are too many snapshots
+               --  flagged as keep
+               --
+               Declare_Next_Snap_2 :
+               declare
+                  Next_Snap : constant Snapshots_Index_Type :=
+                     Next_Snap_Slot (Obj);
+               begin
+
+                  --
+                  --  Could not find free slots, we need to discard some
+                  --  quarantine snapshots, user intervention needed.
+                  --
+                  if Next_Snap = Curr_Snap (Obj) then
+                     raise Program_Error;
+                  end if;
+
+                  Declare_Tree :
+                  declare
+                     Tree : constant Tree_Helper.Object_Type :=
+                        Virtual_Block_Device.Get_Tree_Helper (Obj.VBD);
+                  begin
+                     Obj.Superblocks (Obj.Cur_SB).Snapshots (
+                        Next_Snap).Height := Tree_Helper.Height (Tree);
+                     Obj.Superblocks (Obj.Cur_SB).Snapshots (
+                        Next_Snap).Nr_Of_Leafs := Tree_Helper.Leafs (Tree);
+                  end Declare_Tree;
+
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (Next_Snap) :=
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (Curr_Snap (Obj));
+
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (Next_Snap).Gen :=
+                     Obj.Cur_Gen;
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (Next_Snap).ID :=
+                     Snapshot_ID_Storage_Type (Obj.Next_Snapshot_Id);
+
+                  Obj.Superblocks (Obj.Cur_SB).Snapshots (
+                     Next_Snap).Valid := 1;
+                  Obj.Superblocks (Obj.Cur_SB).Curr_Snap :=
+                     Snapshots_Index_Storage_Type (Next_Snap);
+               end Declare_Next_Snap_2;
+
                Obj.Superblock_Dirty  := False;
                Obj.Secure_Superblock := False;
+
+               Debug.Print_String ("-------------------- SB SECURED -----");
+
+               for J in Superblocks_Index_Type loop
+                  if J = Obj.Cur_SB then
+                     Debug.Print_String ("--- CURRENT ---");
+                  end if;
+                  Debug.Print_String ("SB: " & Debug.To_String (
+                     Debug.Uint64_Type (J)) & " "
+                     & " Curr_Snap: " & Debug.To_String (Debug.Uint64_Type (
+                        Obj.Superblocks (J).Curr_Snap)));
+                  for I in Snapshots_Index_Type loop
+                     if Snapshot_Valid (Obj.Superblocks (J).Snapshots (I))
+                     then
+                        Debug.Print_String ("SB: "
+                           & Debug.To_String (Debug.Uint64_Type (J)) & " "
+                           & "SN: "
+                           & Debug.To_String (Debug.Uint64_Type (I)) & " "
+                           & "PBA: "
+                           & Debug.To_String (Debug.Uint64_Type (
+                              Obj.Superblocks (J).Snapshots (I).PBA)) & " "
+                           & "GEN: "
+                           & Debug.To_String (Debug.Uint64_Type (
+                              Obj.Superblocks (J).Snapshots (I).Gen)) & " "
+                           & "ID: "
+                           & Debug.To_String (Debug.Uint64_Type (
+                              Obj.Superblocks (J).Snapshots (I).ID)) & " "
+                           & "KEEP: "
+                           & Debug.To_String (Debug.Uint64_Type (
+                              Obj.Superblocks (J).Snapshots (I).Flags)) & " "
+                           & Debug.To_String (
+                              Obj.Superblocks (J).Snapshots (I).Hash) & " "
+                           );
+                     end if;
+                  end loop;
+               end loop;
 
             end Declare_Next_SB;
             Sync_Superblock.Drop_Completed_Primitive (Obj.Sync_SB_Obj, Prim);
