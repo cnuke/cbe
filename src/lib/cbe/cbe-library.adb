@@ -56,30 +56,6 @@ is
       return Result;
    end Cache_Dirty;
 
-   function Superblock_Dirty (Obj : Object_Type)
-   return Boolean
-   is (Obj.Superblock_Dirty);
-
-   function Is_Securing_Superblock (Obj : Object_Type)
-   return Boolean
-   is (Obj.Secure_Superblock);
-
-   procedure Start_Securing_Superblock (Obj : in out Object_Type)
-   is
-   begin
-      Obj.Secure_Superblock := True;
-   end Start_Securing_Superblock;
-
-   function Is_Sealing_Generation (Obj : Object_Type)
-   return Boolean
-   is (Obj.Seal_Generation);
-
-   procedure Start_Sealing_Generation (Obj : in out Object_Type)
-   is
-   begin
-      Obj.Seal_Generation := True;
-   end Start_Sealing_Generation;
-
    procedure Create_Snapshot (
       Obj     : in out Object_Type;
       Quara   :        Boolean;
@@ -191,24 +167,6 @@ is
       return Result;
    end Snapshot_Creation_Complete;
 
-   --  function Superblock_Snapshot_Slot (SB : Superblock_Type)
-   --  return Snapshot_ID_Type
-   --  is
-   --     Snap_Slot : Snapshot_ID_Type := Snapshot_ID_Invalid_Slot;
-   --  begin
-   --     For_Snapshots :
-   --     for Snap_Index in Snapshots_Index_Type loop
-   --        if
-   --           Snapshot_Valid (SB.Snapshots (Snap_Index)) and then
-   --           SB.Snapshots (Snap_Index).ID = SB.Snapshot_ID
-   --        then
-   --           Snap_Slot := Snapshot_ID_Type (Snap_Index);
-   --           exit For_Snapshots;
-   --        end if;
-   --     end loop For_Snapshots;
-   --     return Snap_Slot;
-   --  end Superblock_Snapshot_Slot;
-
    procedure Active_Snapshot_Ids (
       Obj     : in out Object_Type;
       List    :    out Active_Snapshot_Ids_Type)
@@ -315,9 +273,7 @@ is
       Obj.Last_Snapshot_ID        :=
          Snapshot_ID_Type (SBs (Curr_SB).Snapshots (Curr_Snap).ID);
 
-      Obj.Seal_Generation         := False;
       Obj.Secure_Superblock       := False;
-      Obj.Superblock_Dirty        := False;
       Obj.Front_End_Req_Prim      := Request_Primitive_Invalid;
       Obj.Back_End_Req_Prim       := Request_Primitive_Invalid;
 
@@ -766,8 +722,7 @@ is
       --  to the block device and mark them as clean again. While the flusher
       --  is doing its work, all Cache entries should be locked, i.E., do not
       --  Cache an entry while its flushed - otherwise the change might not
-      --  end up on the block device. Should be guarded by
-      --  'Obj.Seal_Generation'.
+      --  end up on the block device.
       --
       --  (For better or worse it is just a glorified I/O manager. At some
       --  point it should be better merged into the Cache module later on.)
@@ -855,16 +810,7 @@ is
       --                  write it to the block device
       --    3. (CACHE)    starting by the lowest inner node it will update the
       --                  node entry (PBA and Hash)
-      --    4. (COMPLETE) it returns the new root PBA and root Hash
-      --
-      --  When 'Obj.Seal_Generation' is set, it will first instruct the
-      --  Cache_Flusher module to clean the Cache. Afterwards it will store
-      --  the current snapshot and increment the 'Obj.Cur_SB' as well as
-      --  '_Cur_Gen' (-> there is only one snapshot per generation and there
-      --  are currently only 48 snapshot slots per super-block) and set the
-      --  sync trigger.
-      --
-      --  Otherwise it will just update the root Hash in place.
+      --    4. (COMPLETE) update root PBA and root Hash
       --
 
       Loop_WB_Completed_Prims :
@@ -881,86 +827,17 @@ is
                raise Program_Error;
             end if;
 
-            if Obj.Seal_Generation then
-
-               --  FIXME only check flusher when the Cache is dirty
-               --  FIXME and track if flusher is already active, e.G. by adding
-               --     a 'active' function that returns True whenever is doing
-               --     its job. I fear it currently only works by chance
-               exit Loop_WB_Completed_Prims when
-                  not Cache_Flusher.Request_Acceptable (Obj.Cache_Flusher_Obj);
-
-               Declare_Cache_Dirty_2 :
-               declare
-                  Cache_Dirty : Boolean := False;
-               begin
-
-                  For_Cache_Data_2 :
-                  for Cache_Index in Cache.Cache_Index_Type loop
-                     if Cache.Dirty (Obj.Cache_Obj, Cache_Index) then
-
-                        Cache_Dirty := True;
-
-                        Cache_Flusher.Submit_Request (
-                           Obj.Cache_Flusher_Obj,
-                           Cache.Flush (Obj.Cache_Obj, Cache_Index),
-                           Cache_Index);
-                     end if;
-                  end loop For_Cache_Data_2;
-
-                  --
-                  --  In case we have to flush the Cache, wait until we have
-                  --  finished doing that.
-                  --
-                  if Cache_Dirty then
-                     Progress := True;
-                     exit Loop_WB_Completed_Prims;
-                  end if;
-
-               end Declare_Cache_Dirty_2;
-
-               --
-               --  Look for a new snapshot slot. If we cannot find one
-               --  we manual intervention b/c there are too many snapshots
-               --  flagged as keep
-               --
-               Declare_Next_Snap :
-               declare
-                  Next_Snap : constant Snapshots_Index_Type :=
-                     Next_Snap_Slot (Obj);
-               begin
-
-                  --
-                  --  Creating a new snapshot only involves storing its
-                  --  meta-Data in a new slot and afterwards setting the
-                  --  seal timeout again.
-                  --
-                  Create_New_Snapshot (Obj, Next_Snap, Prim);
-                  Obj.Secure_Superblock := True;
-               end Declare_Next_Snap;
-
-               Obj.Cur_Gen         := Obj.Cur_Gen  + 1;
-               Obj.Seal_Generation := False;
-
-            else
-
-               --
-               --  No need to create a new snapshot, just update the Hash
-               --  in place and move on.
-               --
-               Update_Snapshot_Hash (
-                  Obj,
-                  Obj.Superblocks (Obj.Cur_SB).
-                     Snapshots (Curr_Snap (Obj)),
-                  Prim);
-            end if;
+            Update_Snapshot_Hash (
+               Obj,
+               Obj.Superblocks (Obj.Cur_SB).
+                  Snapshots (Curr_Snap (Obj)),
+               Prim);
 
             --
             --  We touched the super-block, either by updating a snapshot or by
             --  creating a new one - make sure it gets secured within the next
             --  interval.
             --
-            Obj.Superblock_Dirty := True;
             Write_Back.Drop_Completed_Primitive (Obj.Write_Back_Obj, Prim);
 
             --
@@ -1276,7 +1153,6 @@ is
                      Snapshots_Index_Storage_Type (Next_Snap);
                end Declare_Next_Snap_2;
 
-               Obj.Superblock_Dirty  := False;
                Obj.Secure_Superblock := False;
 
                pragma Debug (Dump_Current_Superblock (Obj));
@@ -2214,7 +2090,6 @@ is
       ", Back_End_Req_Prim="  & To_String (Obj.Back_End_Req_Prim) &
       ", Front_End_Req_Prim=" & To_String (Obj.Front_End_Req_Prim) &
       ", VBD="                & Virtual_Block_Device.To_String (Obj.VBD) &
-      ", Superblock_Dirty="   & Debug.To_String (Obj.Superblock_Dirty) &
       ", Secure_Superblock="  & Debug.To_String (Obj.Secure_Superblock) &
       ")");
 

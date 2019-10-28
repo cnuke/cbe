@@ -35,46 +35,6 @@ is
       External_Name =>
          "_ZN3Cbe7LibraryC2ERKNS_11SuperblocksERKNS_17Superblocks_indexE";
 
-   function Cache_Dirty (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   with
-      Export,
-      Convention    => C,
-      External_Name => "_ZNK3Cbe7Library11cache_dirtyEv";
-
-   function Superblock_Dirty (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   with
-      Export,
-      Convention    => C,
-      External_Name => "_ZNK3Cbe7Library16superblock_dirtyEv";
-
-   function Is_Securing_Superblock (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   with
-      Export,
-      Convention    => C,
-      External_Name => "_ZNK3Cbe7Library22is_securing_superblockEv";
-
-   function Is_Sealing_Generation (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   with
-      Export,
-      Convention    => C,
-      External_Name => "_ZNK3Cbe7Library21is_sealing_generationEv";
-
-   procedure Start_Securing_Superblock (Obj : in out Library.Object_Type)
-   with
-      Export,
-      Convention    => C,
-      External_Name => "_ZN3Cbe7Library25start_securing_superblockEv";
-
-   procedure Start_Sealing_Generation (Obj : in out Library.Object_Type)
-   with
-      Export,
-      Convention    => C,
-      External_Name => "_ZN3Cbe7Library24start_sealing_generationEv";
-
    procedure Create_Snapshot (
       Obj     : in out Library.Object_Type;
       Quara   :        CXX_Bool_Type;

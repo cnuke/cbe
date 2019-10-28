@@ -279,16 +279,6 @@ class Cbe::Library : public Cbe::Spark_object<216648>
 	 */
 	void active_snapshot_ids(Active_snapshot_ids &ids);
 
-	bool is_sealing_generation() const;
-	bool is_securing_superblock() const;
-
-	void start_sealing_generation();
-	void start_securing_superblock();
-
-	bool cache_dirty() const;
-	bool superblock_dirty() const;
-
-
 	/**
 	 * CBE requests encrytion
 	 *

@@ -295,15 +295,9 @@ class Cbe::Main : Rpc_object<Typed_root<Block::Session>>
 				Time::Timestamp const now = _time.timestamp();
 				if (now - _last_sync_time >= _sync_interval && !_creating_snapshot_id)
 				{
-					if (_cbe->cache_dirty()) {
-						_creating_snapshot_id = _cbe->create_snapshot(false);
-						log("\033[36;1m INF ", "CREATING SNAPSHOT: ",
-						    _creating_snapshot_id);
-					} else {
-						log("\033[36;1m INF ", "ARM SNAPSHOT TRIGGER");
-						_last_sync_time = now;
-						_time.schedule_sync_timeout(_sync_interval);
-					}
+					_creating_snapshot_id = _cbe->create_snapshot(false);
+					log("\033[36;1m INF ", "CREATING SNAPSHOT: ",
+					    _creating_snapshot_id);
 				}
 
 				if (_creating_snapshot_id) {
@@ -660,7 +654,6 @@ class Cbe::Main : Rpc_object<Typed_root<Block::Session>>
 			 *  it does not hurt us for now.)
 			 */
 			_time.sync_sigh(_request_handler);
-			_time.secure_sigh(_request_handler);
 
 			/*
 			 * We construct the CBE library. For now it contains all modules needed

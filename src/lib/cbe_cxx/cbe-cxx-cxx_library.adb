@@ -27,34 +27,6 @@ is
          Obj, SBs, Superblocks_Index_Type (Curr_SB.Value));
    end Initialize_Object;
 
-   function Cache_Dirty (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   is (CXX_Bool_From_SPARK (Library.Cache_Dirty (Obj)));
-
-   function Superblock_Dirty (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   is (CXX_Bool_From_SPARK (Library.Superblock_Dirty (Obj)));
-
-   function Is_Securing_Superblock (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   is (CXX_Bool_From_SPARK (Library.Is_Securing_Superblock (Obj)));
-
-   function Is_Sealing_Generation (Obj : Library.Object_Type)
-   return CXX_Bool_Type
-   is (CXX_Bool_From_SPARK (Library.Is_Sealing_Generation (Obj)));
-
-   procedure Start_Securing_Superblock (Obj : in out Library.Object_Type)
-   is
-   begin
-      Library.Start_Securing_Superblock (Obj);
-   end Start_Securing_Superblock;
-
-   procedure Start_Sealing_Generation (Obj : in out Library.Object_Type)
-   is
-   begin
-      Library.Start_Sealing_Generation (Obj);
-   end Start_Sealing_Generation;
-
    procedure Create_Snapshot (
       Obj     : in out Library.Object_Type;
       Quara   :        CXX_Bool_Type;

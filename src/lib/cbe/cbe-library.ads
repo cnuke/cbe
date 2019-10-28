@@ -48,22 +48,6 @@ is
       SBs     :     Superblocks_Type;
       Curr_SB :     Superblocks_Index_Type);
 
-   function Cache_Dirty (Obj : Object_Type)
-   return Boolean;
-
-   function Superblock_Dirty (Obj : Object_Type)
-   return Boolean;
-
-   function Is_Securing_Superblock (Obj : Object_Type)
-   return Boolean;
-
-   function Is_Sealing_Generation (Obj : Object_Type)
-   return Boolean;
-
-   procedure Start_Securing_Superblock (Obj : in out Object_Type);
-
-   procedure Start_Sealing_Generation (Obj : in out Object_Type);
-
    --
    --  Create snapshot
    --
@@ -378,9 +362,7 @@ private
       Cur_Gen                 : Generation_Type;
       Last_Secured_Generation : Generation_Type;
       Last_Snapshot_ID        : Snapshot_ID_Type;
-      Seal_Generation         : Boolean;
       Secure_Superblock       : Boolean;
-      Superblock_Dirty        : Boolean;
       Front_End_Req_Prim      : Request_Primitive_Type;
       Back_End_Req_Prim       : Request_Primitive_Type;
       Creating_Snapshot       : Boolean;
@@ -393,6 +375,9 @@ private
       Snaps     : in out Snapshots_Type;
       Keep_Snap :        Snapshots_Index_Type;
       Success   :    out Boolean);
+
+   function Cache_Dirty (Obj : Object_Type)
+   return Boolean;
 
    function To_String (Req_Prim : Request_Primitive_Type) return String;
 
