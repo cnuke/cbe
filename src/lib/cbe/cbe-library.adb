@@ -168,8 +168,8 @@ is
    end Snapshot_Creation_Complete;
 
    procedure Active_Snapshot_Ids (
-      Obj     : in out Object_Type;
-      List    :    out Active_Snapshot_Ids_Type)
+      Obj     :     Object_Type;
+      List    : out Active_Snapshot_Ids_Type)
    is
    begin
       For_Snapshots :
@@ -244,13 +244,27 @@ is
       Obj.Free_Tree_Retry_Count   := 0;
       Obj.Free_Tree_Trans_Data    := (others => (others => 0));
       Obj.Free_Tree_Query_Data    := (others => (others => 0));
-      Obj.Superblocks             := SBs;
+
+      Obj.Secure_Superblock           := False;
+      Obj.Front_End_Req_Prim          := Request_Primitive_Invalid;
+      Obj.Back_End_Req_Prim           := Request_Primitive_Invalid;
+      Obj.Creating_Snapshot           := False;
+      Obj.Creating_Quaratine_Snapshot := False;
+      Obj.Next_Snapshot_Id            := 0;
+      Obj.Stall_Snapshot_Creation     := False;
+
+      Obj.Last_Snapshot_ID         := 0;
+      Obj.Superblocks              := SBs;
+      Obj.Last_Secured_Generation  := SBs (Curr_SB).Last_Secured_Generation;
+      Obj.Cur_Gen                  := Obj.Last_Secured_Generation + 1;
+
       Obj.Cur_SB                  := (
          if Curr_SB < Superblocks_Index_Type'Last then
             Curr_SB + 1
          else
             Superblocks_Index_Type'First);
       Obj.Superblocks (Obj.Cur_SB) := Obj.Superblocks (Curr_SB);
+
       declare
          Next_Snap : constant Snapshots_Index_Type :=
             Next_Snap_Slot (Obj);
@@ -267,23 +281,11 @@ is
          Obj.Superblocks (Obj.Cur_SB).Curr_Snap :=
             Snapshots_Index_Storage_Type (Next_Snap);
       end;
-
-      Obj.Cur_Gen                 := SBs (Curr_SB).Last_Secured_Generation + 1;
-      Obj.Last_Secured_Generation := SBs (Curr_SB).Last_Secured_Generation;
       Obj.Last_Snapshot_ID        :=
          Snapshot_ID_Type (SBs (Curr_SB).Snapshots (Curr_Snap).ID);
 
-      Obj.Secure_Superblock       := False;
-      Obj.Front_End_Req_Prim      := Request_Primitive_Invalid;
-      Obj.Back_End_Req_Prim       := Request_Primitive_Invalid;
-
-      Obj.Creating_Snapshot           := False;
-      Obj.Creating_Quaratine_Snapshot := False;
-      Obj.Next_Snapshot_Id            := 0;
-      Obj.Stall_Snapshot_Creation     := False;
-
       pragma Debug (Debug.Print_String ("Initial SB state: "));
-      pragma Debug (Dump_Current_Superblock (Obj));
+      pragma Debug (Debug.Dump_Superblocks (Obj.Superblocks, Obj.Cur_SB));
 
    end Initialize_Object;
 
@@ -379,18 +381,19 @@ is
    end Create_New_Snapshot;
 
    procedure Update_Snapshot_Hash (
-      Obj  :        Object_Type;
-      Snap : in out Snapshot_Type;
-      Prim :        Primitive.Object_Type)
+      WB       :        Write_Back.Object_Type;
+      Curr_Gen :        Generation_Type;
+      Snap     : in out Snapshot_Type;
+      Prim     :        Primitive.Object_Type)
    is
       PBA : constant Physical_Block_Address_Type :=
-         Write_Back.Peek_Completed_Root (Obj.Write_Back_Obj, Prim);
+         Write_Back.Peek_Completed_Root (WB, Prim);
    begin
-      Snap.Gen := Obj.Cur_Gen;
+      Snap.Gen := Curr_Gen;
       Snap.PBA := PBA;
 
       Write_Back.Peek_Completed_Root_Hash (
-         Obj.Write_Back_Obj, Prim, Snap.Hash);
+         WB, Prim, Snap.Hash);
 
    end Update_Snapshot_Hash;
 
@@ -633,7 +636,7 @@ is
       loop
          Declare_Prim_3 :
          declare
-            Snap_Slot_Index : Snapshots_Index_Type := 0;
+            Snap_Slot_Index : Snapshots_Index_Type;
             Prim : constant Primitive.Object_Type :=
                Splitter.Peek_Generated_Primitive (Obj.Splitter_Obj);
             Snap_ID : constant Snapshot_ID_Type :=
@@ -828,9 +831,9 @@ is
             end if;
 
             Update_Snapshot_Hash (
-               Obj,
-               Obj.Superblocks (Obj.Cur_SB).
-                  Snapshots (Curr_Snap (Obj)),
+               Obj.Write_Back_Obj,
+               Obj.Cur_Gen,
+               Obj.Superblocks (Obj.Cur_SB).Snapshots (Curr_Snap (Obj)),
                Prim);
 
             --
@@ -1006,15 +1009,32 @@ is
                      Obj.Cache_Obj, Update_PBA, Now, Update_Index);
 
                   --
-                  --  (Later on we can remove the tree_Helper here as the
-                  --  outer degree, which is used to calculate the entry in
-                  --  the inner node from the VBA is set at compile-time.)
+                  --  FIXME We copy the data to the stack first and back to the
+                  --  cache afterwards so gnatprove
+                  --  does not complain that 'formal parameters "Data" and
+                  --  "Update_Data" might be aliased (SPARK RM 6.4.2)' for the
+                  --  call to Write_Back.Update. This might be avoided by using
+                  --  assertions about the data indices.
                   --
-                  Write_Back.Update (
-                     Obj.Write_Back_Obj,
-                     PBA, Virtual_Block_Device.Get_Tree_Helper (Obj.VBD),
-                     Obj.Cache_Data (Index),
-                     Obj.Cache_Data (Update_Index));
+                  Declare_Update_Data : declare
+                     Data : constant Block_Data_Type :=
+                        Obj.Cache_Data (Index);
+
+                     Update_Data : Block_Data_Type :=
+                        Obj.Cache_Data (Update_Index);
+                  begin
+                     --
+                     --  (Later on we can remove the tree_Helper here as the
+                     --  outer degree, which is used to calculate the entry in
+                     --  the inner node from the VBA is set at compile-time.)
+                     --
+                     Write_Back.Update (
+                        Obj.Write_Back_Obj,
+                        PBA, Virtual_Block_Device.Get_Tree_Helper (Obj.VBD),
+                        Data, Update_Data);
+
+                     Obj.Cache_Data (Update_Index) := Update_Data;
+                  end Declare_Update_Data;
 
                   --
                   --  Make the potentially new entry as dirty so it gets
@@ -1153,7 +1173,8 @@ is
 
                Obj.Secure_Superblock := False;
 
-               pragma Debug (Dump_Current_Superblock (Obj));
+               pragma Debug (Debug.Dump_Superblocks (Obj.Superblocks,
+                  Obj.Cur_SB));
 
             end Declare_Next_SB;
             Sync_Superblock.Drop_Completed_Primitive (Obj.Sync_SB_Obj, Prim);
@@ -1433,16 +1454,14 @@ is
          declare
             Prim : constant Primitive.Object_Type :=
                Virtual_Block_Device.Peek_Completed_Primitive (Obj.VBD);
-
-            Data_Idx : Block_IO.Data_Index_Type;
          begin
             exit Loop_VBD_Completed_Prims when
                not Primitive.Valid (Prim) or else
                Primitive.Operation (Prim) /= Read or else
                not Block_IO.Primitive_Acceptable (Obj.IO_Obj);
 
-            Block_IO.Submit_Primitive (
-               Obj.IO_Obj, Tag_Decrypt, Prim, Data_Idx);
+            Block_IO.Submit_Primitive_Dont_Return_Index (
+               Obj.IO_Obj, Tag_Decrypt, Prim);
 
             Virtual_Block_Device.Drop_Completed_Primitive (Obj.VBD);
             Progress := True;
@@ -1913,8 +1932,7 @@ is
                pragma Debug (Debug.Print_String ("New root PBA"));
                Free_PBAs (Free_Blocks) :=
                   Old_PBAs (Natural (Trans_Height - 1)).PBA;
-               Free_Blocks := Free_Blocks + 1;
-               New_Blocks  := New_Blocks  + 1;
+               New_Blocks := New_Blocks  + 1;
             end if;
 
             --
@@ -1977,9 +1995,9 @@ is
    end Supply_Client_Data;
 
    procedure Crypto_Cipher_Data_Required (
-      Obj        : in out Object_Type;
-      Req        :    out Request.Object_Type;
-      Data_Index :    out Crypto.Plain_Buffer_Index_Type)
+      Obj        :     Object_Type;
+      Req        : out Request.Object_Type;
+      Data_Index : out Crypto.Plain_Buffer_Index_Type)
    is
       Item_Index : Crypto.Item_Index_Type;
       Prim       : Primitive.Object_Type;
@@ -2021,9 +2039,9 @@ is
    end Supply_Crypto_Cipher_Data;
 
    procedure Crypto_Plain_Data_Required (
-      Obj        : in out Object_Type;
-      Req        :    out Request.Object_Type;
-      Data_Index :    out Crypto.Cipher_Buffer_Index_Type)
+      Obj        :     Object_Type;
+      Req        : out Request.Object_Type;
+      Data_Index : out Crypto.Cipher_Buffer_Index_Type)
    is
       Item_Index : Crypto.Item_Index_Type;
       Prim       : Primitive.Object_Type;
@@ -2085,44 +2103,5 @@ is
       ", VBD="                & Virtual_Block_Device.To_String (Obj.VBD) &
       ", Secure_Superblock="  & Debug.To_String (Obj.Secure_Superblock) &
       ")");
-
-   procedure Dump_Current_Superblock (Obj : Object_Type)
-   is
-   begin
-      pragma Debug (Debug.Print_String ("Superblock secured: "));
-
-      for J in Superblocks_Index_Type loop
-         if J = Obj.Cur_SB then
-            pragma Debug (Debug.Print_String ("--- CURRENT ---"));
-         end if;
-         pragma Debug (Debug.Print_String ("SB: " & Debug.To_String (
-            Debug.Uint64_Type (J)) & " "
-            & " Curr_Snap: " & Debug.To_String (Debug.Uint64_Type (
-               Obj.Superblocks (J).Curr_Snap))));
-         for I in Snapshots_Index_Type loop
-            if Snapshot_Valid (Obj.Superblocks (J).Snapshots (I))
-            then
-               pragma Debug (Debug.Print_String ("SB: "
-                  & Debug.To_String (Debug.Uint64_Type (J)) & " "
-                  & "SN: "
-                  & Debug.To_String (Debug.Uint64_Type (I)) & " "
-                  & "PBA: "
-                  & Debug.To_String (Debug.Uint64_Type (
-                     Obj.Superblocks (J).Snapshots (I).PBA)) & " "
-                  & "GEN: "
-                  & Debug.To_String (Debug.Uint64_Type (
-                     Obj.Superblocks (J).Snapshots (I).Gen)) & " "
-                  & "ID: "
-                  & Debug.To_String (Debug.Uint64_Type (
-                     Obj.Superblocks (J).Snapshots (I).ID)) & " "
-                  & "KEEP: "
-                  & Debug.To_String (Debug.Uint64_Type (
-                     Obj.Superblocks (J).Snapshots (I).Flags)) & " "
-                  & Debug.To_String (
-                     Obj.Superblocks (J).Snapshots (I).Hash)));
-            end if;
-         end loop;
-      end loop;
-   end Dump_Current_Superblock;
 
 end CBE.Library;

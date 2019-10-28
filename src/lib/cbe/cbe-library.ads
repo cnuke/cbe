@@ -74,8 +74,8 @@ is
    --  \param reference to id array
    --
    procedure Active_Snapshot_Ids (
-      Obj     : in out Object_Type;
-      List    :    out Active_Snapshot_Ids_Type);
+      Obj     :     Object_Type;
+      List    : out Active_Snapshot_Ids_Type);
 
    --
    --  Check if the CBE can accept a new requeust
@@ -222,9 +222,9 @@ is
    --                     returned request is valid
    --
    procedure Crypto_Cipher_Data_Required (
-      Obj        : in out Object_Type;
-      Req        :    out Request.Object_Type;
-      Data_Index :    out Crypto.Plain_Buffer_Index_Type);
+      Obj        :     Object_Type;
+      Req        : out Request.Object_Type;
+      Data_Index : out Crypto.Plain_Buffer_Index_Type);
 
    --
    --  Acknowledge that the encryption of plain data was requested
@@ -255,9 +255,9 @@ is
    --                     plain-data buffer if returned request is valid
    --
    procedure Crypto_Plain_Data_Required (
-      Obj        : in out Object_Type;
-      Req        :    out Request.Object_Type;
-      Data_Index :    out Crypto.Cipher_Buffer_Index_Type);
+      Obj        :     Object_Type;
+      Req        : out Request.Object_Type;
+      Data_Index : out Crypto.Cipher_Buffer_Index_Type);
 
    --
    --  Acknowledge that required crypto plain-data was requested
@@ -402,15 +402,14 @@ private
       Prim :        Primitive.Object_Type);
 
    procedure Update_Snapshot_Hash (
-      Obj  :        Object_Type;
-      Snap : in out Snapshot_Type;
-      Prim :        Primitive.Object_Type);
+      WB       :        Write_Back.Object_Type;
+      Curr_Gen :        Generation_Type;
+      Snap     : in out Snapshot_Type;
+      Prim     :        Primitive.Object_Type);
 
    procedure Assign_Front_End_Req_Prim (
       Obj  : in out Object_Type;
       Prim :        Primitive.Object_Type;
       Tag  :        Tag_Type);
-
-   procedure Dump_Current_Superblock (Obj : Object_Type);
 
 end CBE.Library;
