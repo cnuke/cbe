@@ -111,7 +111,8 @@ is
    --
    procedure Submit_Request (
       Obj : in out Object_Type;
-      Req :        Request.Object_Type);
+      Req :        Request.Object_Type;
+      ID  :        Snapshot_ID_Type);
 
    --
    --  Check for any completed request
@@ -385,6 +386,7 @@ private
       Creating_Snapshot       : Boolean;
       Creating_Quaratine_Snapshot : Boolean;
       Next_Snapshot_Id        : Snapshot_ID_Type;
+      Stall_Snapshot_Creation : Boolean;
    end record;
 
    procedure Discard_Snapshot (
@@ -395,6 +397,11 @@ private
    function To_String (Req_Prim : Request_Primitive_Type) return String;
 
    function Curr_Snap (Obj : Object_Type)
+   return Snapshots_Index_Type;
+
+   function Snap_Slot_For_ID (
+      Obj : Object_Type;
+      ID  : Snapshot_ID_Type)
    return Snapshots_Index_Type;
 
    function Next_Snap_Slot (Obj : Object_Type)
@@ -418,5 +425,7 @@ private
       Obj  : in out Object_Type;
       Prim :        Primitive.Object_Type;
       Tag  :        Tag_Type);
+
+   procedure Dump_Current_Superblock (Obj : Object_Type);
 
 end CBE.Library;
