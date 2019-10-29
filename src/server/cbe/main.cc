@@ -337,7 +337,7 @@ class Cbe::Main : Rpc_object<Typed_root<Block::Session>>
 						LOGIF("\033[36m INF ", "client_data_ready: ", cbe_request);
 						if (!cbe_request.valid()) { return; }
 
-						uint64_t const prim_index = _cbe->give_data_index(cbe_request);
+						uint64_t const prim_index = _cbe->client_data_index(cbe_request);
 						if (prim_index == ~0ull) {
 							Genode::error("prim_index invalid: ", cbe_request);
 							return;
@@ -371,7 +371,7 @@ class Cbe::Main : Rpc_object<Typed_root<Block::Session>>
 						LOGIF("\033[36m INF ", "client_data_required: ", cbe_request);
 						if (!cbe_request.valid()) { return; }
 
-						uint64_t const prim_index = _cbe->give_data_index(cbe_request);
+						uint64_t const prim_index = _cbe->client_data_index(cbe_request);
 						if (prim_index == ~0ull) {
 							Genode::error("prim_index invalid: ", cbe_request);
 							return;

@@ -83,14 +83,14 @@ is
          "_ZN3Cbe7Library7executeERNS_9Io_bufferERNS_" &
          "19Crypto_plain_bufferERNS_20Crypto_cipher_bufferEy";
 
-   function Request_Acceptable (Obj : Library.Object_Type)
+   function Client_Request_Acceptable (Obj : Library.Object_Type)
    return CXX_Bool_Type
    with
       Export,
       Convention    => C,
       External_Name => "_ZNK3Cbe7Library25client_request_acceptableEv";
 
-   procedure Submit_Request (
+   procedure Submit_Client_Request (
       Obj : in out Library.Object_Type;
       Req :        CXX_Request_Type;
       ID  :        CXX_Snapshot_ID_Type)
@@ -100,14 +100,14 @@ is
       External_Name =>
          "_ZN3Cbe7Library21submit_client_requestERKNS_7RequestEj";
 
-   function Peek_Completed_Request (Obj : Library.Object_Type)
+   function Peek_Completed_Client_Request (Obj : Library.Object_Type)
    return CXX_Request_Type
    with
       Export,
       Convention    => C,
       External_Name => "_ZNK3Cbe7Library29peek_completed_client_requestEv";
 
-   procedure Drop_Completed_Request (
+   procedure Drop_Completed_Client_Request (
       Obj : in out Library.Object_Type;
       Req :        CXX_Request_Type)
    with
@@ -153,14 +153,14 @@ is
       Convention    => C,
       External_Name => "_ZN3Cbe7Library18_client_data_readyERNS_7RequestE";
 
-   function Give_Data_Index (
+   function Client_Data_Index (
       Obj : Library.Object_Type;
       Req : CXX_Request_Type)
    return CXX_Primitive_Index_Type
    with
       Export,
       Convention    => C,
-      External_Name => "_ZNK3Cbe7Library15give_data_indexERKNS_7RequestE";
+      External_Name => "_ZNK3Cbe7Library17client_data_indexERKNS_7RequestE";
 
    procedure Obtain_Client_Data (
       Obj              : in out Library.Object_Type;
