@@ -25,6 +25,7 @@
 
 /* repo includes */
 #include <util/sha256_4k.h>
+#include <util/block_io.h>
 
 /* local includes */
 #include <util.h>
