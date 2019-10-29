@@ -1492,9 +1492,12 @@ is
    return Request.Object_Type
    is (Pool.Peek_Completed_Request (Obj.Request_Pool_Obj));
 
-   procedure Drop_Completed_Request (Obj : in out Object_Type)
-   is begin
-      Pool.Drop_Completed_Request (Obj.Request_Pool_Obj);
+   procedure Drop_Completed_Request (
+      Obj : in out Object_Type;
+      Req :        Request.Object_Type)
+   is
+   begin
+      Pool.Drop_Completed_Request (Obj.Request_Pool_Obj, Req);
    end Drop_Completed_Request;
 
    --

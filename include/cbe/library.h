@@ -132,7 +132,7 @@ class Cbe::Library : public Cbe::Spark_object<216648>
 	 * 'peek_completed_request' returned a valid request.
 	 *
 	 */
-	void drop_completed_client_request();
+	void drop_completed_client_request(Request const &req);
 
 	/*
 	 * Backend block I/O

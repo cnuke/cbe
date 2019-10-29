@@ -274,7 +274,7 @@ class Cbe::Main : Rpc_object<Typed_root<Block::Session>>
 					Cbe::Request const &req = _cbe->peek_completed_client_request();
 					if (!req.valid()) { return; }
 
-					_cbe->drop_completed_client_request();
+					_cbe->drop_completed_client_request(req);
 
 					Block::Request request = convert_from(req);
 					ack.submit(request);
