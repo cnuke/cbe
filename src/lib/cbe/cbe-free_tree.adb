@@ -10,6 +10,7 @@ pragma Ada_2012;
 
 with SHA256_4K;
 with CBE.Request;
+with CBE.Debug;
 
 package body CBE.Free_Tree
 with SPARK_Mode
@@ -314,6 +315,13 @@ is
             begin
                if not Cache.Data_Available (Cach, PBA) then
                   if Cache.Request_Acceptable_Logged (Cach, PBA) then
+                     if PBA > 16384 then
+                        pragma Debug (Debug.Print_String (
+                           "Loop_Handle_Trans_Generated_Prim: "
+                           & "invalid PBA: "
+                           & Debug.To_String (Debug.Uint64_Type (PBA))));
+                        null;
+                     end if;
                      Cache.Submit_Request_Logged (Cach, PBA);
 
                      --  FIXME it stands to reason if we have to set
@@ -716,6 +724,13 @@ is
 
                      if Cache.Request_Acceptable_Logged (Cach, PBA) then
 
+                        if PBA > 16384 then
+                           pragma Debug (Debug.Print_String (
+                              "Execute_Update: "
+                              & "invalid PBA: "
+                              & Debug.To_String (Debug.Uint64_Type (PBA))));
+                           null;
+                        end if;
                         Cache.Submit_Request_Logged (Cach, PBA);
                         Obj.Execute_Progress := True;
                      end if;

@@ -1021,6 +1021,13 @@ is
                --
                if not Cache.Data_Available (Obj.Cache_Obj, PBA) then
                   if Cache.Request_Acceptable (Obj.Cache_Obj, PBA) then
+                     if PBA > 16384 then
+                        pragma Debug (Debug.Print_String (
+                           "Loop_WB_Generated_Cache_Prims: "
+                           & "invalid PBA: "
+                           & Debug.To_String (Debug.Uint64_Type (PBA))));
+                        null;
+                     end if;
                      Cache.Submit_Request (Obj.Cache_Obj, PBA);
                   end if;
                   Cache_Miss := True;
@@ -1030,6 +1037,14 @@ is
                   if not Cache.Data_Available (Obj.Cache_Obj, Update_PBA) then
                      if Cache.Request_Acceptable (Obj.Cache_Obj, Update_PBA)
                      then
+                        if Update_PBA > 16384 then
+                           pragma Debug (Debug.Print_String (
+                              "Loop_WB_Generated_Cache_Prims:: "
+                              & "invalid Primitive: "
+                              & Debug.To_String (Debug.Uint64_Type (
+                                 Update_PBA))));
+                           null;
+                        end if;
                         Cache.Submit_Request (Obj.Cache_Obj, Update_PBA);
                      end if;
                      Cache_Miss := True;
@@ -1377,6 +1392,13 @@ is
                not Primitive.Valid (Prim) or else
                not Block_IO.Primitive_Acceptable (Obj.IO_Obj);
 
+            if Primitive.Block_Number (Prim) > 16384 then
+               pragma Debug (Debug.Print_String (
+                  "Loop_Cache_Generated_Prims: "
+                  & "invalid Primitive: "
+                  & Primitive.To_String (Prim)));
+               null;
+            end if;
             Block_IO.Submit_Primitive (
                Obj.IO_Obj, Primitive.Tag_Cache, Prim, Data_Idx);
 
@@ -1413,6 +1435,8 @@ is
             exit Loop_IO_Completed_Prims when not Primitive.Valid (Prim);
 
             if not Primitive.Success (Prim) then
+               pragma Debug (Debug.Print_String ("I/O failed: "
+                  & Primitive.To_String (Prim)));
                raise Program_Error;
             end if;
 
