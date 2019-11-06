@@ -435,6 +435,42 @@ class Cbe::Main : Rpc_object<Typed_root<Block::Session>>
 						_block.tx()->try_submit_packet(packet);
 						_backend_request = request;
 
+if (request.block_number == 4098 && request.operation == Request::Operation::WRITE) {
+	Genode::log("EEEEEEEEEEEEEEEEEEEEEEEE block IO back end writes to 4098");
+	Block_data &blk = _io_buf.item(data_index);
+		log (0, ": ",
+				(((uint64_t)blk.values[7]) << 56) +
+				(((uint64_t)blk.values[6]) << 48) +
+				(((uint64_t)blk.values[5]) << 40) +
+				(((uint64_t)blk.values[4]) << 32) +
+				(((uint64_t)blk.values[3]) << 24) +
+				(((uint64_t)blk.values[2]) << 16) +
+				(((uint64_t)blk.values[1]) <<  8) +
+				(((uint64_t)blk.values[0]) <<  0)
+		);
+
+		log (64, ": ",
+				(((uint64_t)blk.values[64 + 7]) << 56) +
+				(((uint64_t)blk.values[64 + 6]) << 48) +
+				(((uint64_t)blk.values[64 + 5]) << 40) +
+				(((uint64_t)blk.values[64 + 4]) << 32) +
+				(((uint64_t)blk.values[64 + 3]) << 24) +
+				(((uint64_t)blk.values[64 + 2]) << 16) +
+				(((uint64_t)blk.values[64 + 1]) <<  8) +
+				(((uint64_t)blk.values[64 + 0]) <<  0)
+		);
+
+		log (128, ": ",
+				(((uint64_t)blk.values[128 + 7]) << 56) +
+				(((uint64_t)blk.values[128 + 6]) << 48) +
+				(((uint64_t)blk.values[128 + 5]) << 40) +
+				(((uint64_t)blk.values[128 + 4]) << 32) +
+				(((uint64_t)blk.values[128 + 3]) << 24) +
+				(((uint64_t)blk.values[128 + 2]) << 16) +
+				(((uint64_t)blk.values[128 + 1]) <<  8) +
+				(((uint64_t)blk.values[128 + 0]) <<  0)
+		);
+}
 						LOGIF("\033[36m INF ", "io_request_in_progress: ", request);
 						_cbe->io_request_in_progress(data_index);
 

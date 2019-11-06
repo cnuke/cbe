@@ -597,6 +597,12 @@ is
                   --  index in the first place would be the preferable
                   --  solution.)
                   --
+
+                  if Primitive.Block_Number (Prim) = 4098 and then
+                     Primitive.Operation (Prim) = Write
+                  then
+                     Debug.Print_String ("FFFFFFFFFFFFFFFFFFF5");
+                  end if;
                   Block_IO.Submit_Primitive (
                      Obj.IO_Obj, Primitive.Tag_Free_Tree_WB, Prim, Data_Idx);
 
@@ -606,6 +612,12 @@ is
                   end if;
 
                elsif Primitive.Has_Tag_IO (Prim) then
+
+                  if Primitive.Block_Number (Prim) = 4098 and then
+                     Primitive.Operation (Prim) = Write
+                  then
+                     Debug.Print_String ("FFFFFFFFFFFFFFFFFFF6");
+                  end if;
                   Block_IO.Submit_Primitive (
                      Obj.IO_Obj, Primitive.Tag_Free_Tree_IO, Prim, Data_Idx);
 
@@ -830,6 +842,11 @@ is
                not Primitive.Valid (Prim) or else
                not Block_IO.Primitive_Acceptable (Obj.IO_Obj);
 
+            if Primitive.Block_Number (Prim) = 4098 and then
+               Primitive.Operation (Prim) = Write
+            then
+               Debug.Print_String ("FFFFFFFFFFFFFFFFFFF1");
+            end if;
             Block_IO.Submit_Primitive (
                Obj.IO_Obj, Primitive.Tag_Cache_Flush, Prim, Data_Idx);
 
@@ -967,6 +984,11 @@ is
                not Primitive.Valid (Prim) or else
                not Block_IO.Primitive_Acceptable (Obj.IO_Obj);
 
+            if Primitive.Block_Number (Prim) = 4098 and then
+               Primitive.Operation (Prim) = Write
+            then
+               Debug.Print_String ("FFFFFFFFFFFFFFFFFFF2");
+            end if;
             Block_IO.Submit_Primitive (
                Obj.IO_Obj, Primitive.Tag_Write_Back, Prim, Data_Idx);
 
@@ -1285,6 +1307,11 @@ is
             begin
                Block_Data_From_Superblock (SB_Data, Obj.Superblock);
 
+               if Primitive.Block_Number (Prim) = 4098 and then
+                  Primitive.Operation (Prim) = Write
+               then
+                  Debug.Print_String ("FFFFFFFFFFFFFFFFFFF3");
+               end if;
                Block_IO.Submit_Primitive (
                   Obj.IO_Obj, Primitive.Tag_Sync_SB, Prim, Data_Idx);
 
@@ -1392,12 +1419,24 @@ is
                not Primitive.Valid (Prim) or else
                not Block_IO.Primitive_Acceptable (Obj.IO_Obj);
 
-            if Primitive.Block_Number (Prim) > 16384 then
-               pragma Debug (Debug.Print_String (
-                  "Loop_Cache_Generated_Prims: "
-                  & "invalid Primitive: "
-                  & Primitive.To_String (Prim)));
-               null;
+            --  if Primitive.Block_Number (Prim) > 16384 then
+            --     pragma Debug (Debug.Print_String (
+            --        "Loop_Cache_Generated_Prims: "
+            --        & "invalid Primitive: "
+            --        & Primitive.To_String (Prim)));
+            --     null;
+            --  end if;
+
+            --  if Primitive.Block_Number (Prim) > 2**32 - 1 then
+            --     pragma Debug (Debug.Print_String (
+            --        "Bad IO Prim PBA: " & Debug.To_String (
+            --        Debug.Uint64_Type (Primitive.Block_Number (Prim)))));
+            --  end if;
+
+            if Primitive.Block_Number (Prim) = 4098 and then
+               Primitive.Operation (Prim) = Write
+            then
+               Debug.Print_String ("FFFFFFFFFFFFFFFFFFF3");
             end if;
             Block_IO.Submit_Primitive (
                Obj.IO_Obj, Primitive.Tag_Cache, Prim, Data_Idx);
@@ -1546,6 +1585,11 @@ is
                Primitive.Operation (Prim) /= Read or else
                not Block_IO.Primitive_Acceptable (Obj.IO_Obj);
 
+            if Primitive.Block_Number (Prim) = 4098 and then
+               Primitive.Operation (Prim) = Write
+            then
+               Debug.Print_String ("FFFFFFFFFFFFFFFFFFF4");
+            end if;
             Block_IO.Submit_Primitive_Dont_Return_Index (
                Obj.IO_Obj, Primitive.Tag_Decrypt, Prim);
 

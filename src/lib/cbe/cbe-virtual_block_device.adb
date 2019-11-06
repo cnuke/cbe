@@ -232,13 +232,25 @@ is
                         Data : constant Block_Data_Type :=
                            Cach_Data (Data_Index);
                      begin
+
+                        Debug.Print_String ("Cache.Data_Index: " &
+                           Debug.To_String (Debug.Uint64_Type (Data_Index)) &
+                           " PBA: " &
+                           Debug.To_String (Debug.Uint64_Type (PBA)));
+
+                        Type_I_Node_Block_Check (Trans_Data (0), "X3 ");
                         Translation.Mark_Generated_Primitive_Complete (
                            Obj.Trans, Data, Trans_Data);
+                        Type_I_Node_Block_Check (Trans_Data (0), "X4 ");
                      end Declare_Data;
                   end Declare_Data_Index;
 
                   Translation.Discard_Generated_Primitive (
                      Obj.Trans);
+               end if;
+
+               if PBA = 4098 then
+                  raise Program_Error;
                end if;
             end Declare_PBA;
          end Declare_Primitive;

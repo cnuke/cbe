@@ -44,9 +44,9 @@ is
    type Index_Type is range 0 .. 2**32 - 1;
    type Index_Slot_Type is private;
 
-   type Generation_Type is mod 2**64;
-   type Block_Number_Type is mod 2**64;
-   type Physical_Block_Address_Type is mod 2**64;
+   type Generation_Type is mod 2**64 with Size => 64;
+   type Block_Number_Type is mod 2**64 with Size => 64;
+   type Physical_Block_Address_Type is mod 2**64 with Size => 64;
 
    type Virtual_Block_Address_Type is range 0 .. Tree_Max_Number_Of_Leafs;
    type Timestamp_Type is mod 2**64;
@@ -322,6 +322,10 @@ is
    procedure Type_I_Node_Block_From_Block_Data (
       Nodes : out Type_I_Node_Block_Type;
       Data  :     Block_Data_Type);
+
+   procedure Type_I_Node_Block_Check (
+      Data  :     Block_Data_Type;
+      Str   :     String);
 
    procedure Block_Data_From_Superblock (
       Data  : out Block_Data_Type;

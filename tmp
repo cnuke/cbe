@@ -1,0 +1,52 @@
+[init -> block_tester] job 4096: WRITE block=4095 count=1, completed
+[init -> block_tester] job 4097: writing 4096 bytes at 16777216
+[init -> cbe] Execute: submit VBD: Snap_ID: 0 Prim: Primitive (Op=WRITE, Tag=Splitter, Pool_Idx=1, Success=True, Block_Number=4096, Index=0) Cur_SB: 2 Curr_Snap: 19 PBA: 4226 Gen: 19 HASH (180,76,131,38,78,84,147,107,...)
+[init -> cbe] XXX1: 3968
+[init -> cbe] XXX2: 3968
+[init -> cbe] :..7: 3968
+[init -> cbe] 3600601310817059981
+[init -> cbe] Error: Exception raised: range check failed in cbe.adb:282
+[init -> cbe] Error: Uncaught exception of type 'Ada::Exception::Range_Check'
+[init -> cbe] Warning: abort called - thread: ep
+
+[init -> block_tester] job 4096: WRITE block=4095 count=1, completed
+[init -> block_tester] job 4097: writing 4096 bytes at 16777216
+[init -> cbe] Execute: submit VBD: Snap_ID: 0 Prim: Primitive (Op=WRITE, Tag=Splitter, Pool_Idx=1, Success=True, Block_Number=4096, Index=0) Cur_SB: 0 Curr_Snap: 1 PBA: 8455 Gen: 145 HASH (105,196,12,24,101,80,38,201,...)
+[init -> cbe] XXX1: 4228
+[init -> cbe] XXX2: 4228
+[init -> cbe] :..7: 4228
+[init -> cbe] 5512135580961994410
+[init -> cbe] Error: Exception raised: range check failed in cbe.adb:282
+[init -> cbe] Error: Uncaught exception of type 'Ada::Exception::Range_Check'
+[init -> cbe] Warning: abort called - thread: ep
+
+[init -> block_tester] job 4096: WRITE block=4095 count=1, completed
+[init -> block_tester] job 4097: writing 4096 bytes at 16777216
+[init -> cbe] Execute: submit VBD: Snap_ID: 0 Prim: Primitive (Op=WRITE, Tag=Splitter, Pool_Idx=1, Success=True, Block_Number=4096, Index=0) Cur_SB: 1 Curr_Snap: 18 PBA: 8455 Gen: 18 HASH (173,149,20,14,147,111,4,149,...)
+[init -> cbe] XXX1: 4033
+[init -> cbe] XXX2: 4033
+[init -> cbe] :..7: 4033
+[init -> cbe] :..8: 
+[init -> cbe] 11085899035681106012
+[init -> cbe] Error: Exception raised: range check failed in cbe.adb:282
+[init -> cbe] Error: Uncaught exception of type 'Ada::Exception::Range_Check'
+
+
+1. Wo kommt der kaputte PBA in im Prim her?
+-------------------------------------------
+VBD.Execute
+ Translation.Execute
+  Translation.Get_Node
+   Type_I_Node_Block_From_Block_Data
+    Type_I_Node_From_Block_Data
+     PBA > 2**32 - 1
+
+=> aus Library.Object_Type.Trans_Data (0)
+=> Alle Werte in dem betroffenen Trans_Data (0) scheinen kaputt zu sein
+
+2. Wo kommt das kaputte Trans_Data (0) her?
+-------------------------------------------
+* Library schreibt Library.Object_Type.Trans_Data nicht
+* Das kaputte Trans_Data (0) wird durch Block_IO von Blk_Nr 4098 gelesen
+* Blk_Nr 4098 wird nur einmal von Block_IO geschrieben mit den selben kaputten Werten
+* Die entsprechende Block_IO Prim kommt vom Write_Back

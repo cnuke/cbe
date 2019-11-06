@@ -313,6 +313,26 @@ is
       end loop For_Nodes;
    end Type_I_Node_Block_From_Block_Data;
 
+   procedure Type_I_Node_Block_Check (
+      Data  :     Block_Data_Type;
+      Str   :     String)
+   is
+      Nodes : Type_I_Node_Block_Type;
+      Off   : Block_Data_Index_Type;
+   begin
+      For_Nodes :
+      for Idx in Nodes'Range loop
+         Off := Block_Data_Index_Type (
+            (Idx * Type_I_Node_Type'Size) / Data (0)'Size);
+         Nodes (Idx) := Type_I_Node_From_Block_Data (Data, Off);
+         if Nodes (Idx).PBA > 2**32 - 1 then
+            Debug.Print_String ("YYYYYYYYYY " & Str &
+               Debug.To_String (
+                  Debug.Uint64_Type (Nodes (Idx).PBA)));
+         end if;
+      end loop For_Nodes;
+   end Type_I_Node_Block_Check;
+
    procedure Block_Data_From_Key (
       Data     : in out Block_Data_Type;
       Data_Off :        Block_Data_Index_Type;
