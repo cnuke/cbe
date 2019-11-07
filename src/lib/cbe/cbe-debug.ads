@@ -79,4 +79,14 @@ is
       SB_Index : Superblocks_Index_Type;
       SB       : Superblock_Type);
 
+   procedure Print_Type_1_Node_Info (
+      Node   : Type_1_Node_Info_Type;
+      Prefix : String);
+
+   procedure Print_Type_I_Node (
+      Node   : Type_I_Node_Type;
+      Prefix : String);
+
+   procedure Print_Type_I_Node_Block (Nodes : Type_I_Node_Block_Type);
+
 end CBE.Debug;

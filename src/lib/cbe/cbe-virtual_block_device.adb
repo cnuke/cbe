@@ -144,6 +144,7 @@ is
       Prim :        Primitive.Object_Type)
    is
    begin
+      Debug.Print_String ("U1");
       Translation.Submit_Primitive (Obj.Trans, PBA, Gen, Hash, Prim);
    end Submit_Primitive;
 
@@ -233,7 +234,8 @@ is
                            Cach_Data (Data_Index);
                      begin
 
-                        Debug.Print_String ("Cache.Data_Index: " &
+                        Debug.Print_String ("Trans_Mark_Prim_Compl1 Cache_Idx"
+                           &
                            Debug.To_String (Debug.Uint64_Type (Data_Index)) &
                            " PBA: " &
                            Debug.To_String (Debug.Uint64_Type (PBA)));
@@ -242,6 +244,8 @@ is
                         Translation.Mark_Generated_Primitive_Complete (
                            Obj.Trans, Data, Trans_Data);
                         Type_I_Node_Block_Check (Trans_Data (0), "X4 ");
+
+                        Debug.Print_String ("Trans_Mark_Prim_Compl2");
                      end Declare_Data;
                   end Declare_Data_Index;
 

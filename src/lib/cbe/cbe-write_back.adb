@@ -10,6 +10,7 @@ pragma Ada_2012;
 
 with CBE.Request;
 with SHA256_4K;
+with CBE.Debug;
 
 package body CBE.Write_Back
 with SPARK_Mode
@@ -301,6 +302,11 @@ is
 
       --  ... but the data or rather leaf node is special
       Obj.Entries (0).Tag := Primitive.Tag_Encrypt;
+
+      if Primitive.Block_Number (Prim) = 4098 then
+         Debug.Print_String ("GGGGGGGGGGGGGGGGGGGGG4");
+         Type_I_Node_Block_Check (Data, "X8 ");
+      end if;
       WB_Data (0) := Data;
    end Submit_Primitive;
 

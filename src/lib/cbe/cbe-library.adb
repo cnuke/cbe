@@ -732,7 +732,7 @@ is
                & " Cur_SB: " & Debug.To_String (Debug.Uint64_Type (Obj.Cur_SB))
                & " Curr_Snap: " & Debug.To_String (Debug.Uint64_Type (
                   Obj.Superblock.Curr_Snap))
-               & " PBA: " & Debug.To_String (Debug.Uint64_Type (
+               & " Root.PBA: " & Debug.To_String (Debug.Uint64_Type (
                   Obj.Superblock.Snapshots (Snap_Slot_Index).PBA))
                & " Gen: "
                & Debug.To_String (Debug.Uint64_Type (
@@ -955,6 +955,9 @@ is
 
                Data_Idx : Crypto.Item_Index_Type;
             begin
+               if Primitive.Block_Number (Prim) = 4098 then
+                  Debug.Print_String ("IIIIIIIIIIIIIIIIII6");
+               end if;
                Crypto.Submit_Primitive (Obj.Crypto_Obj, Prim, Data_Idx);
                Crypto_Plain_Buf (Data_Idx) :=
                   Obj.Write_Back_Data (Plain_Data_Index);
@@ -1365,6 +1368,12 @@ is
                --        module for the resulting Hash and omit further
                --        processing in case the operation failed
                --
+
+               if Primitive.Block_Number (Prim) = 4098 then
+                  Debug.Print_String ("GGGGGGGGGGGGGGGGGGGGG5");
+                  Type_I_Node_Block_Check (Crypto_Cipher_Buf (
+                     Crypto.Data_Index (Obj.Crypto_Obj, Prim)), "X9 ");
+               end if;
                Obj.Write_Back_Data (Index) := Crypto_Cipher_Buf (
                   Crypto.Data_Index (Obj.Crypto_Obj, Prim));
 
@@ -1508,6 +1517,10 @@ is
                         --  acknowledges the primitive to the pool in the read
                         --  case, we have to use the Tag the pool module uses.
                         --
+
+                        if Primitive.Block_Number (Prim) = 4098 then
+                           Debug.Print_String ("IIIIIIIIIIIIIIIIII5");
+                        end if;
                         Crypto.Submit_Primitive (
                            Obj.Crypto_Obj,
                            Primitive.Copy_Valid_Object_New_Tag (
@@ -1882,6 +1895,9 @@ is
                Free_Tree.Peek_Completed_WB_Data (Obj.Free_Tree_Obj, Prim);
          begin
 
+            if WB.New_PBAs (0) = 4098 then
+               Debug.Print_String ("IIIIIIIIIIIIIIIIII8");
+            end if;
             Write_Back.Submit_Primitive (
                Obj.Write_Back_Obj,
                WB.Prim, WB.Gen, WB.VBA, WB.New_PBAs, WB.Old_PBAs,
@@ -2107,6 +2123,10 @@ is
                --  (We would have to check if the module can acutally accept
                --  the Request...)
                --
+
+               if New_PBAs (0) = 4098 then
+                  Debug.Print_String ("IIIIIIIIIIIIIIIIII7");
+               end if;
                Write_Back.Submit_Primitive (
                   Obj      => Obj.Write_Back_Obj,
                   Prim     => Prim,

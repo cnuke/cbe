@@ -274,6 +274,7 @@ is
             not Translation.Acceptable (Obj.Trans) or else
             not Primitive.Valid (Obj.Curr_Query_Prim);
 
+         Debug.Print_String ("U2");
          Translation.Submit_Primitive (
             Obj.Trans, Obj.Root_PBA, Obj.Root_Gen, Obj.Root_Hash,
             Obj.Curr_Query_Prim);

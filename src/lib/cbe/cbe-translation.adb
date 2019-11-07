@@ -142,6 +142,13 @@ is
       end loop;
 
       Obj.Walk (Natural (Obj.Level)) := (Root_PBA, Root_Gen, Root_Hash);
+      Debug.Print_String (
+         "Tra.SbmPrm.Walk(" &
+         Debug.To_String (
+            Debug.Uint64_Type (Obj.Level)) &
+         ") = " &
+         Debug.To_String (
+            Debug.Uint64_Type (Root_PBA)));
 
       Obj.Current := Prim;
       Obj.Data_PBA := PBA_Invalid;
@@ -188,7 +195,16 @@ is
             Obj.Walk (Natural (Obj.Level)) := (
                Node.PBA, Node.Gen, Node.Hash);
 
+            Debug.Print_String (
+               "Tra.Ex.Walk(" &
+               Debug.To_String (
+                  Debug.Uint64_Type (Obj.Level)) &
+               ") = " &
+               Debug.To_String (
+                  Debug.Uint64_Type (Node.PBA)));
+
             Obj.Next_PBA := Obj.Walk (Natural (Obj.Level)).PBA;
+
             Obj.Execute_Progress := True;
             return;
          end;
@@ -346,8 +362,20 @@ is
       Data       :        Block_Data_Type;
       Trans_Data : in out Translation_Data_Type)
    is
+      Nodes2 : Type_I_Node_Block_Type;
+      Nodes3 : Type_I_Node_Block_Type;
    begin
       Obj.Data.Avail (Tree_Level_Index_Type (Obj.Level - 1)) := True;
+      Type_I_Node_Block_From_Block_Data (Nodes2, Data);
+      if Nodes2 (0).PBA > 2**32 - 1 then
+         Type_I_Node_Block_From_Block_Data (Nodes3, Trans_Data (0));
+         Debug.Print_Type_I_Node_Block (Nodes3);
+         Debug.Print_String ("<walk>");
+         for Index in Obj.Walk'Range loop
+            Debug.Print_Type_1_Node_Info (Obj.Walk (Natural (Index)), "  ");
+         end loop;
+         Debug.Print_String ("</walk>");
+      end if;
       Trans_Data (0) := Data;
    end Mark_Generated_Primitive_Complete;
 

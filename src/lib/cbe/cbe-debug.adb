@@ -111,4 +111,47 @@ is
       end loop;
    end Dump_Superblock;
 
+   procedure Print_Type_1_Node_Info (
+      Node   : Type_1_Node_Info_Type;
+      Prefix : String)
+   is
+   begin
+      Print_String (
+         Prefix &
+         "<node type=""1"" pba=""" &
+         To_String (Uint64_Type (Node.PBA)) &
+         """ gen=""" &
+         To_String (Uint64_Type (Node.Gen)) &
+         """ hash=""" &
+         To_String (Node.Hash) &
+         """/>");
+   end Print_Type_1_Node_Info;
+
+   procedure Print_Type_I_Node (
+      Node   : Type_I_Node_Type;
+      Prefix : String)
+   is
+   begin
+      Print_String (
+         Prefix &
+         "<node type=""1"" pba=""" &
+         To_String (Uint64_Type (Node.PBA)) &
+         """ gen=""" &
+         To_String (Uint64_Type (Node.Gen)) &
+         """ hash=""" &
+         To_String (Node.Hash) &
+         """/>");
+   end Print_Type_I_Node;
+
+   procedure Print_Type_I_Node_Block (Nodes : Type_I_Node_Block_Type)
+   is
+   begin
+
+      Print_String ("<node-block>");
+      for Idx in Nodes'Range loop
+         Print_Type_I_Node (Nodes (Idx), "  ");
+      end loop;
+      Print_String ("</node-block>");
+   end Print_Type_I_Node_Block;
+
 end CBE.Debug;
