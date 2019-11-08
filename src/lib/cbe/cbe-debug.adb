@@ -146,12 +146,9 @@ is
    procedure Print_Type_I_Node_Block (Nodes : Type_I_Node_Block_Type)
    is
    begin
-
-      Print_String ("<node-block>");
       for Idx in Nodes'Range loop
          Print_Type_I_Node (Nodes (Idx), "  ");
       end loop;
-      Print_String ("</node-block>");
    end Print_Type_I_Node_Block;
 
 end CBE.Debug;

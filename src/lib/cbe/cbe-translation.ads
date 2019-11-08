@@ -137,7 +137,15 @@ is
    --
    --  Mark the generated primitive as completed
    --
-   procedure Mark_Generated_Primitive_Complete (
+   procedure Mark_Generated_Primitive_Complete_FT (
+      Obj        : in out Object_Type;
+      Data       :        Block_Data_Type;
+      Trans_Data : in out Translation_Data_Type);
+
+   --
+   --  Mark the generated primitive as completed
+   --
+   procedure Mark_Generated_Primitive_Complete_VBD (
       Obj        : in out Object_Type;
       Data       :        Block_Data_Type;
       Trans_Data : in out Translation_Data_Type);

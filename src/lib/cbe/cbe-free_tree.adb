@@ -274,7 +274,6 @@ is
             not Translation.Acceptable (Obj.Trans) or else
             not Primitive.Valid (Obj.Curr_Query_Prim);
 
-         Debug.Print_String ("U2");
          Translation.Submit_Primitive (
             Obj.Trans, Obj.Root_PBA, Obj.Root_Gen, Obj.Root_Hash,
             Obj.Curr_Query_Prim);
@@ -337,7 +336,7 @@ is
                      Data_Index : Cache.Cache_Index_Type;
                   begin
                      Cache.Data_Index (Cach, PBA, Timestamp, Data_Index);
-                     Translation.Mark_Generated_Primitive_Complete (
+                     Translation.Mark_Generated_Primitive_Complete_FT (
                         Obj.Trans, Cach_Data (Data_Index), Trans_Data);
 
                      Translation.Discard_Generated_Primitive (

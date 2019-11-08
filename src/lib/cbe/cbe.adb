@@ -326,7 +326,7 @@ is
             (Idx * Type_I_Node_Type'Size) / Data (0)'Size);
          Nodes (Idx) := Type_I_Node_From_Block_Data (Data, Off);
          if Nodes (Idx).PBA > 2**32 - 1 then
-            Debug.Print_String (Str & "Type_I_Nodes (" &
+            Debug.Print_String (Str & "Type_I_Nodes(" &
                Debug.To_String (Debug.Uint64_Type (Idx)) & ").PBA: " &
                Debug.To_String (
                   Debug.Uint64_Type (Nodes (Idx).PBA)));

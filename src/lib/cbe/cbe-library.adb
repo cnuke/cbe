@@ -725,21 +725,25 @@ is
                Snap_Slot_Index := Curr_Snap (Obj);
             end if;
 
-            pragma Debug (Debug.Print_String ("Execute: "
-               & "submit VBD: "
-               & "Snap_ID: " & Debug.To_String (Debug.Uint64_Type (Snap_ID))
-               & " Prim: " & Primitive.To_String (Prim)
-               & " Cur_SB: " & Debug.To_String (Debug.Uint64_Type (Obj.Cur_SB))
-               & " Curr_Snap: " & Debug.To_String (Debug.Uint64_Type (
-                  Obj.Superblock.Curr_Snap))
-               & " Root.PBA: " & Debug.To_String (Debug.Uint64_Type (
-                  Obj.Superblock.Snapshots (Snap_Slot_Index).PBA))
-               & " Gen: "
-               & Debug.To_String (Debug.Uint64_Type (
-                  Obj.Superblock.Snapshots (Snap_Slot_Index).Gen))
-               & " "
-               & Debug.To_String (Obj.Superblock.Snapshots (
-                  Snap_Slot_Index).Hash)));
+            if Primitive.Block_Number (Prim) > 4000 then
+               pragma Debug (Debug.Print_String ("Execute: "
+                  & "submit VBD: "
+                  & "Snap_ID: " &
+                  Debug.To_String (Debug.Uint64_Type (Snap_ID))
+                  & " Prim: " & Primitive.To_String (Prim)
+                  & " Cur_SB: " &
+                  Debug.To_String (Debug.Uint64_Type (Obj.Cur_SB))
+                  & " Curr_Snap: " & Debug.To_String (Debug.Uint64_Type (
+                     Obj.Superblock.Curr_Snap))
+                  & " Root.PBA: " & Debug.To_String (Debug.Uint64_Type (
+                     Obj.Superblock.Snapshots (Snap_Slot_Index).PBA))
+                  & " Gen: "
+                  & Debug.To_String (Debug.Uint64_Type (
+                     Obj.Superblock.Snapshots (Snap_Slot_Index).Gen))
+                  & " "
+                  & Debug.To_String (Obj.Superblock.Snapshots (
+                     Snap_Slot_Index).Hash)));
+            end if;
 
             --
             --  For every new Request, we have to use the currlently active
@@ -2035,15 +2039,16 @@ is
                      --  change it in place and store it directly in the
                      --  new_PBA array.
                      --
-                     pragma Debug (Debug.Print_String ("PBA: "
-                        & Debug.To_String (Debug.Uint64_Type (PBA)) & " "
-                        & "Gen: "
-                        & Debug.To_String (Debug.Uint64_Type (Gen)) & " "
-                        & "Cur_Gen: "
-                        & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
-                        & " Npba: "
-                        & Debug.To_String (Debug.Uint64_Type (
-                           Nodes (Natural (Child_Idx)).PBA))));
+
+                     --  pragma Debug (Debug.Print_String ("PBA: "
+                     --     & Debug.To_String (Debug.Uint64_Type (PBA)) & " "
+                     --     & "Gen: "
+                     --     & Debug.To_String (Debug.Uint64_Type (Gen)) & " "
+                     --     & "Cur_Gen: "
+                     --     & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
+                     --     & " Npba: "
+                     --     & Debug.To_String (Debug.Uint64_Type (
+                     --        Nodes (Natural (Child_Idx)).PBA))));
                      if Gen = Obj.Cur_Gen or else Gen = 0 then
 
                         New_PBAs (Tree_Level_Index_Type (I - 1)) :=
@@ -2061,34 +2066,34 @@ is
                         Free_Blocks := Free_Blocks + 1;
                         New_Blocks  := New_Blocks  + 1;
 
-                        pragma Debug (Debug.Print_String ("New_Blocks: "
-                           & Debug.To_String (Debug.Uint64_Type (New_Blocks))
-                           & " Free_PBA: "
-                           & Debug.To_String (Debug.Uint64_Type (
-                              Free_PBAs (Free_Blocks))) & " "
-                           & Debug.To_String (Debug.Uint64_Type (
-                              Old_PBAs (Natural (I - 1)).PBA))));
+                      --  pragma Debug (Debug.Print_String ("New_Blocks: "
+                      --     & Debug.To_String (Debug.Uint64_Type (New_Blocks))
+                      --     & " Free_PBA: "
+                      --     & Debug.To_String (Debug.Uint64_Type (
+                      --        Free_PBAs (Free_Blocks))) & " "
+                      --     & Debug.To_String (Debug.Uint64_Type (
+                      --        Old_PBAs (Natural (I - 1)).PBA))));
                      end if;
                   end Declare_Generation;
                end Declare_Nodes;
             end loop;
 
-            pragma Debug (Debug.Print_String ("Snap.Gen: "
-               & Debug.To_String (Debug.Uint64_Type (Snap.Gen)) & " "
-               & "Cur_Gen: "
-               & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
-               & " root PBA: "
-               & Debug.To_String (Debug.Uint64_Type (
-                  Old_PBAs (Natural (Trans_Height - 1)).PBA))
-               & " Gen: "
-               & Debug.To_String (Debug.Uint64_Type (
-                  Old_PBAs (Natural (Trans_Height - 1)).Gen))));
+          --  pragma Debug (Debug.Print_String ("Snap.Gen: "
+          --     & Debug.To_String (Debug.Uint64_Type (Snap.Gen)) & " "
+          --     & "Cur_Gen: "
+          --     & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
+          --     & " root PBA: "
+          --       & Debug.To_String (Debug.Uint64_Type (
+          --          Old_PBAs (Natural (Trans_Height - 1)).PBA))
+          --       & " Gen: "
+          --       & Debug.To_String (Debug.Uint64_Type (
+          --          Old_PBAs (Natural (Trans_Height - 1)).Gen))));
 
             --  check root node
             if Old_PBAs (Natural (Trans_Height - 1)).Gen = Obj.Cur_Gen and then
                Old_PBAs (Natural (Trans_Height - 1)).PBA /= Obj.Last_Root_PBA
             then
-               pragma Debug (Debug.Print_String ("Change root PBA in place"));
+            --  pragma Debug (Debug.Print_String ("Change root PBA in place"));
                New_PBAs (Tree_Level_Index_Type (Trans_Height - 1)) :=
                   Old_PBAs (Natural (Trans_Height - 1)).PBA;
             else

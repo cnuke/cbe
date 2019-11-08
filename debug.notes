@@ -1,0 +1,29 @@
+1. Wo kommt der kaputte PBA in im Prim her?
+-------------------------------------------
+VBD.Execute
+ Translation.Execute
+  Translation.Get_Node
+   Type_I_Node_Block_From_Block_Data
+    Type_I_Node_From_Block_Data
+     PBA > 2**32 - 1
+
+=> aus Library.Object_Type.Trans_Data (0)
+=> Alle Werte in dem betroffenen Trans_Data (0) scheinen kaputt zu sein
+
+2. Wo kommt das kaputte Trans_Data (0) her?
+-------------------------------------------
+* Library schreibt Library.Object_Type.Trans_Data nicht
+* Das kaputte Trans_Data (0) wird durch Block_IO vom Device gelesen
+* Die entsprechende Blk_Nr wird nur einmal von Block_IO geschrieben mit eben
+  jenen kaputten Werten
+* Die entsprechende Block_IO Prim kommt vom Write_Back, Crypto, kurzum, es
+  sind verschlüsselte Daten und wahrscheinlich liegen sie zu Recht da
+=> Die Interpretation als Trans_Data ist falsch
+
+3. Warum die Fehlinterpretation als Trans_Data?
+-----------------------------------------------
+
+* Im entsprechenden Root Node steht der angebliche Type 1 Node der eigentlich
+  ein Leaf Node ist korrekt drin
+* Auffällig ist daß die Generationen im betroffenen Root Node für das
+  Schreib-Pattern ungewöhnlich vermischt sind
