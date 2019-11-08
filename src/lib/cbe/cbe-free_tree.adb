@@ -207,6 +207,10 @@ is
       Obj.WB_Data.Old_PBAs := Old_PBAs;
       Obj.Free_PBAs        := Fr_PBAs;
 
+      pragma Debug (Debug.Print_String ("Free_Tree.Submit_Request: "
+         & "Nr_Of_Blocks: "
+         & Debug.To_String (Debug.Uint64_Type (Obj.Nr_Of_Blocks)) & " "));
+
    end Submit_Request;
 
    function Leaf_Usable (
@@ -220,6 +224,8 @@ is
    begin
       --  FIXME check could be done outside
       if  not Node.Reserved then
+         pragma Debug (Debug.Print_String ("Free PBA: "
+            & Debug.To_String (Debug.Uint64_Type (Node.PBA))));
          return True;
       end if;
 
@@ -253,6 +259,10 @@ is
             Free := not In_Use;
          end if;
       end Declare_Generations;
+      if Free then
+         pragma Debug (Debug.Print_String ("Resue PBA: "
+            & Debug.To_String (Debug.Uint64_Type (Node.PBA))));
+      end if;
       return Free;
 
    end Leaf_Usable;
@@ -265,6 +275,9 @@ is
       Timestamp        :        Timestamp_Type)
    is
    begin
+
+      pragma Debug (Debug.Print_String ("FT Trans: "
+         & Translation.To_String (Obj.Trans)));
       --
       --  Submit new request for querying a branch in the FT
       --
@@ -335,7 +348,13 @@ is
                   declare
                      Data_Index : Cache.Cache_Index_Type;
                   begin
+
                      Cache.Data_Index (Cach, PBA, Timestamp, Data_Index);
+                     pragma Debug (Debug.Print_String (
+                        "FT Get Cache Data: PBA: "
+                        & Debug.To_String (Debug.Uint64_Type (PBA))
+                        & " Data_Index: " & Debug.To_String (
+                        Debug.Uint64_Type (Data_Index))));
                      Translation.Mark_Generated_Primitive_Complete_FT (
                         Obj.Trans, Cach_Data (Data_Index), Trans_Data);
 
@@ -669,6 +688,22 @@ is
                Nodes (Natural (Node_Index)).PBA =
                Obj.WB_Data.New_PBAs (Tree_Level_Index_Type (Tree_Level))
             then
+               pragma Debug (Debug.Print_String (
+                  "Exchange_PBA_In_T2_Node_Entries: "
+                  & " get PBA: "
+                  & Debug.To_String (Debug.Uint64_Type (
+                     Nodes (Natural (Node_Index)).PBA))
+                  & " return PBA: "
+                  & Debug.To_String (Debug.Uint64_Type (
+                     Obj.WB_Data.Old_PBAs (Natural (Tree_Level)).PBA))
+                  & " A_Gen: "
+                  & Debug.To_String (Debug.Uint64_Type (
+                     Obj.WB_Data.Old_PBAs (Natural (Tree_Level)).Gen))
+                  & " F_Gen: "
+                  & Debug.To_String (Debug.Uint64_Type (
+                     Obj.WB_Data.Gen))
+                  ));
+
                Nodes (Natural (Node_Index)).PBA :=
                   Obj.WB_Data.Old_PBAs (Natural (Tree_Level)).PBA;
 
@@ -825,6 +860,17 @@ is
                      end Declare_Data_Index_2;
                   end loop For_Tree_Levels_Greater_Zero_2;
                end loop For_Query_Branches_Before_Curr;
+               for I in 0 .. WB_Count - 1 loop
+                  pragma Debug (Debug.Print_String ("FT WB("
+                     & Debug.To_String (Debug.Uint64_Type (I)) & "): "
+                     & "PBA: "
+                     & Debug.To_String (Debug.Uint64_Type (Obj.WB_IOs (I).PBA))
+                     & " Index: "
+                     & Debug.To_String (Debug.Uint64_Type (
+                        Obj.WB_IOs (I).Index))
+                     ));
+               end loop;
+
             end Declare_WB_Count;
 
             Obj.Do_WB := True;

@@ -290,7 +290,7 @@ is
          Obj.Superblock.Curr_Snap)).PBA;
       Obj.Last_Root_Hash := Obj.Superblock.Snapshots (Snapshots_Index_Type (
          Obj.Superblock.Curr_Snap)).Hash;
-      Obj.Cur_SB := Curr_SB;
+      Obj.Cur_SB := Curr_SB + 1;
 
       Obj.Sync_Primitive := Primitive.Invalid_Object;
 
@@ -465,6 +465,15 @@ is
       --  be better to use a different interface for that purpose as I
       --  do not know how well the current solution works with SPARK...)
       --
+      --  pragma Debug (Debug.Print_String ("Dump snaps"));
+      --  for I in Obj.Superblock.Snapshots'Range loop
+      --     if Snapshot_Valid (Obj.Superblock.Snapshots (I)) then
+      --        pragma Debug (Debug.Print_String ("Snap("
+      --           & Debug.To_String (Debug.Uint64_Type (I)) & "): "
+      --           & Debug.To_String (Debug.Uint64_Type (
+      --              Obj.Superblock.Snapshots (I).Gen))));
+      --     end if;
+      --  end loop;
       declare
       begin
          Free_Tree.Execute (
@@ -2078,22 +2087,30 @@ is
                end Declare_Nodes;
             end loop;
 
-          --  pragma Debug (Debug.Print_String ("Snap.Gen: "
-          --     & Debug.To_String (Debug.Uint64_Type (Snap.Gen)) & " "
-          --     & "Cur_Gen: "
-          --     & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
-          --     & " root PBA: "
-          --       & Debug.To_String (Debug.Uint64_Type (
-          --          Old_PBAs (Natural (Trans_Height - 1)).PBA))
-          --       & " Gen: "
-          --       & Debug.To_String (Debug.Uint64_Type (
-          --          Old_PBAs (Natural (Trans_Height - 1)).Gen))));
+            pragma Debug (Debug.Print_String ("Snap.Gen: "
+               & Debug.To_String (Debug.Uint64_Type (Snap.Gen)) & " "
+               & "Cur_Gen: "
+               & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
+               & " root PBA: "
+               & Debug.To_String (Debug.Uint64_Type (
+                  Old_PBAs (Natural (Trans_Height - 1)).PBA))
+               & " Gen: "
+               & Debug.To_String (Debug.Uint64_Type (
+                  Old_PBAs (Natural (Trans_Height - 1)).Gen))
+               & " Last root PBA: "
+               & Debug.To_String (Debug.Uint64_Type (
+                  Obj.Last_Root_PBA))
+                ));
 
             --  check root node
-            if Old_PBAs (Natural (Trans_Height - 1)).Gen = Obj.Cur_Gen and then
-               Old_PBAs (Natural (Trans_Height - 1)).PBA /= Obj.Last_Root_PBA
+            --  if Old_PBAs (Natural (Trans_Height - 1)).Gen = Obj.Cur_Gen
+            --  and then
+            --  Old_PBAs (Natural (Trans_Height - 1)).PBA /= Obj.Last_Root_PBA
+            --  XXX simply wrong
+            if Old_PBAs (Natural (Trans_Height - 1)).Gen = 0
+               or else Old_PBAs (Natural (Trans_Height - 1)).Gen = Obj.Cur_Gen
             then
-            --  pragma Debug (Debug.Print_String ("Change root PBA in place"));
+               pragma Debug (Debug.Print_String ("Change root PBA in place"));
                New_PBAs (Tree_Level_Index_Type (Trans_Height - 1)) :=
                   Old_PBAs (Natural (Trans_Height - 1)).PBA;
             else

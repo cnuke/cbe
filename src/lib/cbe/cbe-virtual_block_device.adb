@@ -226,7 +226,15 @@ is
                   declare
                      Data_Index : Cache.Cache_Index_Type;
                   begin
+
+                     Cache.Dump_Cache_State (Cach);
+
                      Cache.Data_Index (Cach, PBA, Timestamp, Data_Index);
+                     pragma Debug (Debug.Print_String (
+                        "VBD Get Cache Data: PBA: "
+                        & Debug.To_String (Debug.Uint64_Type (PBA))
+                        & " Data_Index: " & Debug.To_String (
+                           Debug.Uint64_Type (Data_Index))));
                      Declare_Data :
                      declare
                         Data : constant Block_Data_Type :=

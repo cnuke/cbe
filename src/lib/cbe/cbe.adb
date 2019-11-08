@@ -446,6 +446,9 @@ is
       Block_Data_From_Unsigned_64 (Data, Off, Unsigned_64 (SB.Free_Gen));
       Off := Off + SB.Free_Gen'Size / 8;
 
+      pragma Debug (Debug.Print_String ("SB.Free_Number: "
+         & Debug.To_String (Debug.Uint64_Type (SB.Free_Number))));
+
       Block_Data_From_Unsigned_64 (Data, Off, Unsigned_64 (SB.Free_Number));
       Off := Off + SB.Free_Number'Size / 8;
 

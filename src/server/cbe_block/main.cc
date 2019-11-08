@@ -1038,6 +1038,14 @@ class Cbe::Mmu
 					throw -1;
 				}
 
+				if (vba < 8 && _current_request.operation.type == Block::Operation::Type::WRITE) {
+					Cbe::Superblock const &sb = *reinterpret_cast<Cbe::Superblock const*>(src);
+					Genode::error(sb);
+					for (Snapshot const &snap : sb.snapshots) {
+						Genode::log(snap);
+					}
+				}
+
 				Genode::memcpy(dst, src, _vbd.block_size());
 			} catch (Cbe::Tree::Invalid_virtual_block_address) {
 				result = false;
@@ -1438,6 +1446,10 @@ class Cbe::Main : Rpc_object<Typed_root<Block::Session>>
 					sbX.free_height = sb.free_height;
 					sbX.free_degree = sb.free_degree;
 					sbX.free_leaves = sb.free_leaves;
+				}
+				Genode::error(sb);
+				for (Snapshot const &snap : sb.snapshots) {
+					Genode::log(snap);
 				}
 			}
 			_mmu.construct(*_vbd, _report, _verbose, _dump_all);
