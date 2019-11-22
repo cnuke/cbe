@@ -656,7 +656,7 @@ is
          --  therefor we have to check tree height + 1.
          --
          For_Tree_Levels :
-         for Tree_Level in 0 .. Tree_Helper.Height (Obj.Trans_Helper) loop
+         for Tree_Level in 0 .. Obj.WB_Data.Tree_Height loop
             if
                Nodes (Natural (Node_Index)).PBA =
                Obj.WB_Data.New_PBAs (Tree_Level_Index_Type (Tree_Level))
