@@ -51,7 +51,7 @@ is
    type Virtual_Block_Address_Type is range 0 .. Tree_Max_Number_Of_Leafs;
    type Timestamp_Type is mod 2**64;
 
-   type Tree_Level_Index_Type is range 0 .. Tree_Max_Height - 1;
+   type Tree_Level_Index_Type is range 0 .. Tree_Max_Height;
 
    type Tree_Number_Of_Leafs_Type
    is range 0 .. Tree_Max_Number_Of_Leafs;
