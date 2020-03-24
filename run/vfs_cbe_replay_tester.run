@@ -1,0 +1,136 @@
+assert_spec linux
+
+create_boot_directory
+
+proc cbe_image_file { } {
+	return "vfs_cbe_replay_tester.img"
+}
+
+build {
+	core
+	init
+	timer
+	server/vfs
+	server/lx_block
+	server/lx_fs
+	lib/vfs/cbe
+	app/vfs_replay
+}
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="lx_fs" ld="no">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>}
+
+append config {
+
+	<start name="vfs_replay" caps="120">
+		<resource name="RAM" quantum="30M"/>
+		<provides><service name="File_system"/></provides>
+		<config file="/dev/cbe/current/data">
+			<replay verbose="yes" bulk="no">
+				<request type="write" offset="0" count="1536"/>
+				<request type="sync"  offset="0" count="1536"/>
+				<request type="write" offset="1024" count="512"/>
+				<request type="write" offset="2560" count="4096"/>
+				<request type="read"  offset="0" count="10240"/>
+				<request type="write" offset="1024" count="11264"/>
+				<request type="write" offset="0" count="9216"/>
+				<request type="sync"  offset="0" count="1536"/>
+				<request type="write" offset="4096" count="8704"/>
+				<request type="write" offset="5120" count="6656"/>
+				<request type="write" offset="1024" count="4608"/>
+				<request type="write" offset="2560" count="4096"/>
+				<request type="read"  offset="0" count="10240"/>
+				<request type="write" offset="1024" count="11264"/>
+				<request type="write" offset="0" count="9216"/>
+				<!-- <create-snapshot id="1" quarantine="yes"/> -->
+				<request type="write" offset="3584" count="2560"/>
+				<request type="write" offset="2048" count="5632"/>
+				<request type="read"  offset="6144" count="9216"/>
+				<request type="read"  offset="5120" count="10752"/>
+				<request type="write" offset="3584" count="2560"/>
+				<request type="write" offset="2048" count="5632"/>
+				<request type="read"  offset="6144" count="9216"/>
+				<request type="read"  offset="5120" count="10752"/>
+				<request type="write" offset="3584" count="2560"/>
+				<request type="write" offset="2048" count="5632"/>
+				<request type="read"  offset="6144" count="9216"/>
+				<request type="read"  offset="5120" count="10752"/>
+				<request type="write" offset="3584" count="2560"/>
+				<request type="write" offset="2048" count="5632"/>
+				<request type="read"  offset="6144" count="9216"/>
+				<request type="read"  offset="5120" count="10752"/>
+				<request type="sync"  offset="3584" count="512"/>
+				<request type="write" offset="5120" count="1024"/>
+				<!-- <create-snapshot id="2" quarantine="yes"/> -->
+				<request type="read"  offset="5120" count="10752"/>
+				<request type="write" offset="3584" count="2560"/>
+				<request type="write" offset="2048" count="5632"/>
+				<request type="read"  offset="6144" count="9216"/>
+				<!-- <discard-snapshot id="1"/> -->
+				<request type="read"  offset="5120" count="10752"/>
+				<request type="write" offset="3584" count="2560"/>
+				<request type="write" offset="2048" count="5632"/>
+				<request type="read"  offset="6144" count="9216"/>
+				<request type="read"  offset="5120" count="10752"/>
+			</replay>
+
+			<vfs>
+				<fs label="fs_backend"/>
+				<dir name="dev">
+					<cbe name="cbe" show_progress="no" passphrase="All your base are belong" block="/} [cbe_image_file] {"/>
+				</dir>
+			</vfs>
+		</config>
+		<route>
+			<service name="File_system" label="fs_backend"> <child name="lx_fs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+install_config $config
+
+
+
+set boot_modules {
+	core timer init ld.lib.so vfs lx_fs
+	spark.lib.so libsparkcrypto.lib.so vfs_cbe.lib.so
+	vfs.lib.so libc.lib.so
+	vfs_replay
+}
+
+append boot_modules [cbe_image_file]
+
+build_boot_image $boot_modules
+
+run_genode_until forever
