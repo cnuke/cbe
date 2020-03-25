@@ -36,7 +36,6 @@ append build_components {
 	app/cbe_init
 	server/log_terminal
 	server/report_rom
-	server/cbe
 	server/lx_block
 	app/block_tester
 }
