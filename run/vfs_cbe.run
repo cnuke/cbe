@@ -6,6 +6,7 @@ proc cbe_image_file { } {
 	return "vfs_cbe_block.img"
 }
 
+set use_interactively [expr ![get_cmd_switch --autopilot]]
 set use_block 0
 
 import_from_depot [depot_user]/src/[base_src] \
@@ -19,7 +20,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_pipe \
                   [depot_user]/src/fs_rom \
-                  [depot_user]/src/report_rom
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/log_terminal
 
 build {
 	server/lx_block
@@ -64,13 +66,23 @@ set config {
 		<provides>
 			<service name="Input"/> <service name="Framebuffer"/>
 		</provides>
-	</start>
+	</start>}
 
+append_if $use_interactively config {
 	<start name="terminal" caps="110">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append_if [expr !$use_interactively] config {
+	<start name="log_terminal" caps="110">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
@@ -93,23 +105,6 @@ append_if [expr !$use_block] config {
 	</start>}
 
 append config {
-	<!--
-	<start name="vfs_cbe">
-		<binary name="vfs"/>
-		<resource name="RAM" quantum="16M"/>
-		<provides><service name="File_system"/></provides>
-		<config>
-			<vfs>
-			</vfs>
-			<policy label="test-libc_vfs_block -> cbe" root="/dev/cbe" writeable="yes"/>
-		</config>
-		<route>
-			<service name="Block" label="block_backend"> <child name="block_device"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-	-->
 
 	<start name="vfs" caps="120">
 		<resource name="RAM" quantum="30M"/>
@@ -120,7 +115,7 @@ append config {
 append_if $use_block config {
 				<block name="block" label="block_backend"/>}
 append_if [expr !$use_block] config {
-				<fs label="fs_backend"/>}
+				<fs buffer_size="1M" label="fs_backend"/>}
 
 append config {
 				<tar name="coreutils.tar" />
@@ -147,8 +142,15 @@ append config {
 			<default-policy root="/" writeable="yes"/>
 		</config>
 		<route>
-			<service name="File_system" label="fs_backend"> <child name="lx_fs"/> </service>
-			<service name="Terminal"> <child name="terminal"/> </service>
+			<service name="File_system" label="fs_backend"> <child name="lx_fs"/> </service>}
+
+append_if $use_interactively config {
+			<service name="Terminal"> <child name="terminal"/> </service>}
+
+append_if [expr !$use_interactively] config {
+			<service name="Terminal"> <child name="log_terminal"/> </service>}
+
+append config {
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -208,4 +210,8 @@ append boot_modules [cbe_image_file]
 
 build_boot_image $boot_modules
 
-run_genode_until forever
+if {$use_interactively} {
+	run_genode_until forever
+} else {
+	run_genode_until {.*--- Automated CBE testing finished.*} 60
+}
