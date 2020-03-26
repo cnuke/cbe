@@ -120,7 +120,7 @@ class Vfs_cbe::Wrapper
 		bool             _discard_snapshot       { false };
 
 		/* configuration options */
-		bool _verbose       { false };
+		bool _verbose       { true }; // XXX
 		bool _show_progress { false };
 
 		using Backend_device_path = Genode::String<32>;
@@ -128,9 +128,9 @@ class Vfs_cbe::Wrapper
 
 		void _read_config(Xml_node config)
 		{
-			_show_progress   = config.attribute_value("verbose", false);
-			_show_progress   = config.attribute_value("show_progress", false);
-			_block_device    = config.attribute_value("block", _block_device);
+			_verbose       = config.attribute_value("verbose", _verbose);
+			_show_progress = config.attribute_value("show_progress", _show_progress);
+			_block_device  = config.attribute_value("block", _block_device);
 
 			using Passphrase = Genode::String<32+1>;
 			Passphrase passphrase = config.attribute_value("passphrase", Passphrase());
@@ -626,6 +626,10 @@ class Vfs_cbe::Wrapper
 				_frontend_request.count   = 0;
 				_frontend_request.snap_id = 0;
 				_frontend_request.state   = Frontend_request::State::PENDING;
+				if (_verbose) {
+					Genode::log("Req: (front req: ",
+					            _frontend_request.cbe_request, ")");
+				}
 				return true;
 			}
 
@@ -801,6 +805,11 @@ class Vfs_cbe::Wrapper
 					_helper_write_request.state = Helper_request::State::COMPLETE;
 				} else {
 					frontend_request.state = ST::COMPLETE;
+					if (_verbose) {
+						Genode::log("Complete request: ",
+						            " (frontend request: ", _frontend_request.cbe_request,
+						            " count: ", _frontend_request.count, ")");
+					}
 				}
 				progress = true;
 			}
