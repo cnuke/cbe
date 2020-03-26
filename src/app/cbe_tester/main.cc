@@ -1449,14 +1449,15 @@ class Cbe::Main
 			while (_nr_of_sbs_requested < NUM_SUPER_BLOCKS &&
 			       _blk.tx()->ready_to_submit())
 			{
-				Cbe::Request request {
+				Cbe::Request request(
 					Cbe::Request::Operation::READ,
 					Cbe::Request::Success::FALSE,
 					_nr_of_sbs_requested,
 					0,
 					1,
+					0,
 					0
-				};
+				);
 				try {
 					Block::Packet_descriptor packet {
 						_blk.alloc_packet(Cbe::BLOCK_SIZE),
@@ -1556,7 +1557,7 @@ class Cbe::Main
 					_cbe_init.submit_client_request(
 						Cbe::Request(
 							Cbe::Request::Operation::READ,
-							Cbe::Request::Success::FALSE, 0, 0, 0, 0),
+							Cbe::Request::Success::FALSE, 0, 0, 0, 0, 0),
 						cfg.key_id(),
 						cfg.vbd_nr_of_lvls() - 1,
 						cfg.vbd_nr_of_children(),
@@ -1579,7 +1580,7 @@ class Cbe::Main
 					_cbe_check.submit_client_request(
 						Cbe::Request(
 							Cbe::Request::Operation::READ,
-							Cbe::Request::Success::FALSE, 0, 0, 0, 0));
+							Cbe::Request::Success::FALSE, 0, 0, 0, 0, 0));
 
 					_state = CBE_CHECK;
 					progress = true;
@@ -1595,7 +1596,7 @@ class Cbe::Main
 					_cbe_dump.submit_client_request(
 						Cbe::Request(
 							Cbe::Request::Operation::READ,
-							Cbe::Request::Success::FALSE, 0, 0, 0, 0 ),
+							Cbe::Request::Success::FALSE, 0, 0, 0, 0, 0),
 						cfg);
 
 					_state = CBE_DUMP;
