@@ -147,7 +147,7 @@ class Main
 					}
 					_cbe_init.io_request_completed(data_index, success);
 					_blk.tx()->release_packet(packet);
-					_blk_req = Cbe::Request { };
+					_blk_req = Cbe::Request();
 					progress = true;
 				}
 			}
@@ -175,9 +175,9 @@ class Main
 					_env.parent().exit(-1);
 				}
 				_cbe_init.submit_client_request(
-					Cbe::Request {
+					Cbe::Request(
 						Cbe::Request::Operation::READ,
-						Cbe::Request::Success::FALSE, 0, 0, 0, 0 },
+						Cbe::Request::Success::FALSE, 0, 0, 0, 0),
 					cfg.vbd_nr_of_lvls() - 1,
 					cfg.vbd_nr_of_children(),
 					cfg.vbd_nr_of_leafs(),

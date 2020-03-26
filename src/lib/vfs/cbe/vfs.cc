@@ -366,7 +366,7 @@ class Vfs_cbe::Wrapper
 			case Backend_request::State::READ_COMPLETE:
 
 				_cbe->io_request_completed(data_index, _backend_request.success);
-				_backend_request.cbe_request = Cbe::Request { };
+				_backend_request.cbe_request = Cbe::Request();
 				_backend_request.state       = Backend_request::State::NONE;
 				progress = true;
 			default: break;
@@ -443,7 +443,7 @@ class Vfs_cbe::Wrapper
 			case Backend_request::State::WRITE_COMPLETE:
 
 				_cbe->io_request_completed(data_index, _backend_request.success);
-				_backend_request.cbe_request = Cbe::Request { };
+				_backend_request.cbe_request = Cbe::Request();
 				_backend_request.state       = Backend_request::State::NONE;
 				progress = true;
 			default: break;
@@ -499,7 +499,7 @@ class Vfs_cbe::Wrapper
 			case Backend_request::State::SYNC_COMPLETE:
 
 				_cbe->io_request_completed(data_index, _backend_request.success);
-				_backend_request.cbe_request = Cbe::Request { };
+				_backend_request.cbe_request = Cbe::Request();
 				_backend_request.state       = Backend_request::State::NONE;
 				progress = true;
 			default: break;
@@ -622,13 +622,12 @@ class Vfs_cbe::Wrapper
 
 			/* short-cut for SYNC requests */
 			if (op == Cbe::Request::Operation::SYNC) {
-				_frontend_request.cbe_request = Cbe::Request {
-					.operation    = op,
-					.success      = Cbe::Request::Success::FALSE,
-					.block_number = 0,
-					.offset       = 0,
-					.count        = 1,
-				};
+				_frontend_request.cbe_request = Cbe::Request(
+					op,
+					Cbe::Request::Success::FALSE,
+					0,
+					0,
+					1);
 				_frontend_request.count   = 0;
 				_frontend_request.snap_id = 0;
 				_frontend_request.state   = Frontend_request::State::PENDING;
@@ -648,13 +647,12 @@ class Vfs_cbe::Wrapper
 			unaligned_request |= (count % Cbe::BLOCK_SIZE) != 0;
 
 			if (unaligned_request) {
-				_helper_read_request.cbe_request = Cbe::Request {
-					.operation    = Cbe::Request::Operation::READ,
-					.success      = Cbe::Request::Success::FALSE,
-					.block_number = offset / Cbe::BLOCK_SIZE,
-					.offset       = (uint64_t)&_helper_read_request.block_data,
-					.count        = 1,
-				};
+				_helper_read_request.cbe_request = Cbe::Request(
+					op,
+					Cbe::Request::Success::FALSE,
+					offset / Cbe::BLOCK_SIZE,
+					(uint64_t)&_helper_read_request.block_data,
+					1);
 				_helper_read_request.state = Helper_request::State::PENDING;
 
 				_frontend_request.helper_offset = (offset % Cbe::BLOCK_SIZE);
@@ -672,13 +670,12 @@ class Vfs_cbe::Wrapper
 				_frontend_request.state = Frontend_request::State::PENDING;
 			}
 
-			_frontend_request.cbe_request = Cbe::Request {
-				.operation    = op,
-				.success      = Cbe::Request::Success::FALSE,
-				.block_number = offset / Cbe::BLOCK_SIZE,
-				.offset       = (uint64_t)data,
-				.count        = (uint32_t)(count / Cbe::BLOCK_SIZE),
-			};
+			_frontend_request.cbe_request = Cbe::Request(
+				op,
+				Cbe::Request::Success::FALSE,
+				offset / Cbe::BLOCK_SIZE,
+				(uint64_t)data,
+				(uint32_t)(count / Cbe::BLOCK_SIZE));
 
 			if (_verbose) {
 				if (unaligned_request) {

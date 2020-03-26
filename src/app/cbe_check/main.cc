@@ -148,7 +148,7 @@ class Main
 					}
 					_cbe_check.io_request_completed(data_index, success);
 					_blk.tx()->release_packet(packet);
-					_blk_req = Cbe::Request { };
+					_blk_req = Cbe::Request();
 					progress = true;
 				}
 			}
@@ -172,9 +172,9 @@ class Main
 				_env.parent().exit(-1);
 			}
 			_cbe_check.submit_client_request(
-				Cbe::Request {
+				Cbe::Request(
 					Cbe::Request::Operation::READ,
-					Cbe::Request::Success::FALSE, 0, 0, 0, 0 });
+					Cbe::Request::Success::FALSE, 0, 0, 0, 0));
 
 			_blk.tx_channel()->sigh_ack_avail(_blk_handler);
 			_blk.tx_channel()->sigh_ready_to_submit(_blk_handler);
