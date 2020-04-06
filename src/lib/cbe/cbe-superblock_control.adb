@@ -130,6 +130,11 @@ is
 
       when Create_Key_Completed =>
 
+         if SB.State /= Normal then
+            raise Program_Error;
+         end if;
+         SB.State := Rekeying;
+
          Declare_Key_Indices :
          declare
             Oldest_Key_Idx : Keys_Index_Type := Keys_Index_Type'First;

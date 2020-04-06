@@ -633,6 +633,10 @@ namespace Cbe {
 		enum { NUM_KEYS = 2u };
 		enum { INVALID_SNAPSHOT_SLOT = NUM_SNAPSHOTS, };
 
+		enum class State : uint8_t { NORMAL = 0, REKEYING = 1 };
+
+		State      state;
+
 		// XXX w/o snapshots about 265 bytes,
 		//     snapshots about 68 bytes each, all in all 3529 bytes
 		Key key[NUM_KEYS];
@@ -662,7 +666,7 @@ namespace Cbe {
 		Height                 meta_height;
 		Degree                 meta_degree;
 		Number_of_leaves       meta_leaves;
-		char                   padding[360];
+		char                   padding[359];
 
 		void print(Genode::Output &out) const
 		{

@@ -53,6 +53,7 @@ is
          SB.Keys (Idx) := Key_Invalid;
       end loop For_Keys_Except_First;
 
+      SB.State                   := Normal;
       SB.Curr_Snap               := 0;
       SB.Degree                  := Obj.VBD_Degree;
       SB.Last_Secured_Generation := 0;
