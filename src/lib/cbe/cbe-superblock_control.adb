@@ -8,8 +8,6 @@
 
 pragma Ada_2012;
 
-with CBE.Debug;
-
 package body CBE.Superblock_Control
 with SPARK_Mode
 is
@@ -112,6 +110,7 @@ is
    procedure Execute_Initialize_Rekeying (
       Job      : in out Job_Type;
       Job_Idx  :        Jobs_Index_Type;
+      SB       : in out Superblock_Type;
       Progress : in out Boolean)
    is
    begin
@@ -129,6 +128,29 @@ is
          Job.State := Create_Key_Pending;
          Progress := True;
 
+      when Create_Key_Completed =>
+
+         Declare_Key_Indices :
+         declare
+            Oldest_Key_Idx : Keys_Index_Type := Keys_Index_Type'First;
+            Newest_Key_Idx : Keys_Index_Type := Keys_Index_Type'First;
+         begin
+            For_Each_Key_In_SB :
+            for Key_Idx in SB.Keys'Range loop
+               if SB.Keys (Key_Idx).ID < SB.Keys (Oldest_Key_Idx).ID then
+                  Oldest_Key_Idx := Key_Idx;
+               end if;
+               if SB.Keys (Key_Idx).ID > SB.Keys (Newest_Key_Idx).ID then
+                  Newest_Key_Idx := Key_Idx;
+               end if;
+            end loop For_Each_Key_In_SB;
+
+            SB.Keys (Oldest_Key_Idx) := (
+               Value => Job.Key,
+               ID => SB.Keys (Newest_Key_Idx).ID + 1);
+
+         end Declare_Key_Indices;
+
       when others =>
 
          null;
@@ -141,6 +163,7 @@ is
    --
    procedure Execute (
       Ctrl     : in out Control_Type;
+      SB       : in out Superblock_Type;
       Progress : in out Boolean)
    is
    begin
@@ -148,7 +171,7 @@ is
       for Idx in Ctrl.Jobs'Range loop
          case Ctrl.Jobs (Idx).Operation is
          when Initialize_Rekeying =>
-            Execute_Initialize_Rekeying (Ctrl.Jobs (Idx), Idx, Progress);
+            Execute_Initialize_Rekeying (Ctrl.Jobs (Idx), Idx, SB, Progress);
          when Invalid =>
             null;
          end case;
