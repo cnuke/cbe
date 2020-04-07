@@ -1614,6 +1614,8 @@ is
       Progress : in out Boolean)
    is
    begin
+      Pool.Execute (Obj.Request_Pool_Obj, Progress);
+
       Loop_Pool_Generated_Sync_Prims :
       loop
          Declare_Sync_Prim :
@@ -1771,12 +1773,10 @@ is
          begin
 
             exit Loop_Pool_Generated_SB_Ctrl_Prims when
-               not Primitive.Valid (Prim);
-               --  or else
-               --  not Superblock_Control.Primitive_Acceptable (Obj.SB_Ctrl);
+               not Primitive.Valid (Prim) or else
+               not Superblock_Control.Primitive_Acceptable (Obj.SB_Ctrl);
 
             Superblock_Control.Submit_Primitive (Obj.SB_Ctrl, Prim);
-
             Pool.Drop_Generated_Primitive (
                Obj.Request_Pool_Obj,
                Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)));
@@ -1822,6 +1822,13 @@ is
                Trust_Anchor.Submit_Primitive_Key_Plaintext (
                   Obj.TA, Prim,
                   Superblock_Control.Peek_Generated_Key_Plaintext (
+                     Obj.SB_Ctrl, Prim));
+
+            when Primitive.Tag_SB_Ctrl_TA_Secure_SB =>
+
+               Trust_Anchor.Submit_Primitive_Hash (
+                  Obj.TA, Prim,
+                  Superblock_Control.Peek_Generated_Hash (
                      Obj.SB_Ctrl, Prim));
 
             when others =>
@@ -1911,6 +1918,35 @@ is
          end Declare_Blk_IO_Prim;
       end loop Loop_Generated_Blk_IO_Prims;
 
+      Loop_Completed_Prims :
+      loop
+         Declare_Prim :
+         declare
+            Prim : constant Primitive.Object_Type :=
+               Superblock_Control.Peek_Completed_Primitive (Obj.SB_Ctrl);
+         begin
+            exit Loop_Completed_Prims when not Primitive.Valid (Prim);
+
+            case Primitive.Tag (Prim) is
+            when Primitive.Tag_Pool_SB_Ctrl_Init_Rekey =>
+
+               Pool.Mark_Generated_Primitive_Complete (
+                  Obj.Request_Pool_Obj,
+                  Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
+                  Primitive.Success (Prim));
+
+               Superblock_Control.Drop_Completed_Primitive (Obj.SB_Ctrl, Prim);
+               Progress := True;
+
+            when others =>
+
+               raise Program_Error;
+
+            end case;
+
+         end Declare_Prim;
+      end loop Loop_Completed_Prims;
+
    end Execute_SB_Ctrl;
 
    --
@@ -1947,6 +1983,14 @@ is
                Superblock_Control.Mark_Generated_Prim_Complete_Key_Ciphertext (
                   Obj.SB_Ctrl, Prim,
                   Trust_Anchor.Peek_Completed_Key_Ciphertext (Obj.TA, Prim));
+
+               Trust_Anchor.Drop_Completed_Primitive (Obj.TA, Prim);
+               Progress := True;
+
+            when Primitive.Tag_SB_Ctrl_TA_Secure_SB =>
+
+               Superblock_Control.Mark_Generated_Prim_Complete (
+                  Obj.SB_Ctrl, Prim);
 
                Trust_Anchor.Drop_Completed_Primitive (Obj.TA, Prim);
                Progress := True;
