@@ -180,4 +180,11 @@ private
       SB_Idx   : in out Superblocks_Index_Type;
       Progress : in out Boolean);
 
+   --
+   --  Superblock_Enter_Rekeying_State
+   --
+   procedure Superblock_Enter_Rekeying_State (
+      SB            : in out Superblock_Type;
+      Key_Plaintext :        Key_Plaintext_Type);
+
 end CBE.Superblock_Control;
