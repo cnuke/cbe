@@ -296,6 +296,7 @@ is
       --
 
       State                   : Superblock_State_Type;
+      Rekeying_Curr_VBA       : Virtual_Block_Address_Type;
       Keys                    : Keys_Type;
       Snapshots               : Snapshots_Type;
       Last_Secured_Generation : Generation_Type;

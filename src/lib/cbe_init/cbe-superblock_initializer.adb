@@ -54,6 +54,7 @@ is
       end loop For_Keys_Except_First;
 
       SB.State                   := Normal;
+      SB.Rekeying_Curr_VBA       := 0;
       SB.Curr_Snap               := 0;
       SB.Degree                  := Obj.VBD_Degree;
       SB.Last_Secured_Generation := 0;
