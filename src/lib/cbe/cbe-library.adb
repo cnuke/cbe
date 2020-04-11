@@ -76,8 +76,6 @@ is
       Obj.Creating_Quarantine_Snapshot := False;
 
       Obj.Superblock := SBs (Curr_SB);
-      Obj.Cur_Gen :=
-         Obj.Superblock.Snapshots (Obj.Superblock.Curr_Snap).Gen + 1;
       Obj.Cur_SB := Curr_SB;
       Obj.Cur_SB := Advance_Superblocks_Index (Obj.Cur_SB);
 
@@ -121,6 +119,8 @@ is
       Obj.WB_Prim := Primitive.Invalid_Object;
 
       Advance_Current_Snapshot_Slot (Obj.Superblock);
+      Obj.Superblock.Snapshots (Obj.Superblock.Curr_Snap).Gen :=
+         SBs (Curr_SB).Snapshots (SBs (Curr_SB).Curr_Snap).Gen + 1;
 
       pragma Debug (Debug.Print_String ("Initial SB state: "));
       pragma Debug (Debug.Dump_Superblock (Obj.Cur_SB, Obj.Superblock));
@@ -665,7 +665,6 @@ is
          --
          SB.Snapshots (Next_Snap).Keep  := False;
          SB.Snapshots (Next_Snap).Valid := True;
-         --  SB.Snapshots (Next_Snap).Gen := Obj.Cur_Gen;
          SB.Curr_Snap := Next_Snap;
       end;
    end Advance_Current_Snapshot_Slot;
@@ -921,7 +920,7 @@ is
                (Max_Level => Obj.Superblock.Meta_Max_Level,
                 Edges     => Obj.Superblock.Meta_Degree,
                 Leafs     => Obj.Superblock.Meta_Leafs),
-               Obj.Cur_Gen,
+               Curr_Gen (Obj),
                Physical_Block_Address_Type (Primitive.Block_Number (Prim)));
 
             New_Free_Tree.Drop_Generated_Meta_Tree_Primitive (
@@ -947,10 +946,10 @@ is
 
                if not Obj.Write_Stalled then
 
-                  Obj.Superblock.Last_Secured_Generation := Obj.Cur_Gen;
+                  Obj.Superblock.Last_Secured_Generation := Curr_Gen (Obj);
 
                   Sync_Superblock.Submit_Request (
-                     Obj.Sync_SB_Obj, 1, Obj.Cur_SB, Obj.Cur_Gen);
+                     Obj.Sync_SB_Obj, 1, Obj.Cur_SB, Curr_Gen (Obj));
 
                   pragma Debug (Debug.Print_String (
                      "Write_Stalled Sync_Request"));
@@ -1265,11 +1264,11 @@ is
                         & "Gen: "
                         & Debug.To_String (Debug.Uint64_Type (Gen)) & " "
                         & "Cur_Gen: "
-                        & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
+                        & Debug.To_String (Debug.Uint64_Type (Curr_Gen (Obj)))
                         & " Npba: "
                         & Debug.To_String (Debug.Uint64_Type (
                            Nodes (Natural (Child_Idx)).PBA))));
-                     if Gen = Obj.Cur_Gen or else Gen = 0 then
+                     if Gen = Curr_Gen (Obj) or else Gen = 0 then
 
                         Obj.SCD_New_PBAs (Tree_Level_Index_Type (Level - 1)) :=
                            Old_PBAs (Tree_Level_Index_Type (Level - 1)).PBA;
@@ -1300,7 +1299,7 @@ is
             pragma Debug (Debug.Print_String ("Snap.Gen: "
                & Debug.To_String (Debug.Uint64_Type (Snap.Gen)) & " "
                & "Cur_Gen: "
-               & Debug.To_String (Debug.Uint64_Type (Obj.Cur_Gen))
+               & Debug.To_String (Debug.Uint64_Type (Curr_Gen (Obj)))
                & " root PBA: "
                & Debug.To_String (Debug.Uint64_Type (
                   Old_PBAs (Trans_Max_Level - 1).PBA))
@@ -1310,7 +1309,7 @@ is
 
             --  check root node
             if Old_PBAs (Trans_Max_Level).Gen = 0
-               or else Old_PBAs (Trans_Max_Level).Gen = Obj.Cur_Gen
+               or else Old_PBAs (Trans_Max_Level).Gen = Curr_Gen (Obj)
             then
                pragma Debug (Debug.Print_String ("Change root PBA in place"));
                Obj.SCD_New_PBAs (Trans_Max_Level) :=
@@ -1337,7 +1336,7 @@ is
                      Max_Level => Obj.Superblock.Free_Max_Level,
                      Edges     => Obj.Superblock.Free_Degree,
                      Leafs     => Obj.Superblock.Free_Leafs),
-                  Current_Gen    => Obj.Cur_Gen,
+                  Current_Gen    => Curr_Gen (Obj),
                   Requested_Blocks => Obj.SCD_New_Blocks,
                   New_Blocks       => Obj.SCD_New_PBAs,
                   Old_Blocks       => Old_PBAs,
@@ -1355,7 +1354,7 @@ is
                Write_Back.Submit_Primitive (
                   Obj      => Obj.Write_Back_Obj,
                   Prim     => Prim,
-                  Gen      => Obj.Cur_Gen,
+                  Gen      => Curr_Gen (Obj),
                   VBA      => VBA,
                   New_PBAs => Obj.SCD_New_PBAs,
                   Old_PBAs => Old_PBAs,
@@ -1583,12 +1582,12 @@ is
                not Primitive.Valid (Prim) or else
                not Sync_Superblock.Request_Acceptable (Obj.Sync_SB_Obj);
 
-            Obj.Superblock.Last_Secured_Generation := Obj.Cur_Gen;
+            Obj.Superblock.Last_Secured_Generation := Curr_Gen (Obj);
             Sync_Superblock.Submit_Request (
                Obj.Sync_SB_Obj,
                Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
                Obj.Cur_SB,
-               Obj.Cur_Gen);
+               Curr_Gen (Obj));
 
             Obj.State := Sync_Request;
             Pool.Drop_Generated_Primitive (
@@ -1614,7 +1613,7 @@ is
                not Primitive.Valid (Prim) or else
                not Sync_Superblock.Request_Acceptable (Obj.Sync_SB_Obj);
 
-            Obj.Superblock.Last_Secured_Generation := Obj.Cur_Gen;
+            Obj.Superblock.Last_Secured_Generation := Curr_Gen (Obj);
 
             Write_Current_State_To_Snapshot_Slot (Obj.Superblock);
 
@@ -1622,7 +1621,7 @@ is
                Obj.Sync_SB_Obj,
                Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
                Obj.Cur_SB,
-               Obj.Cur_Gen);
+               Curr_Gen (Obj));
 
             Obj.State := Sync_Request;
             Pool.Drop_Generated_Primitive (
@@ -1654,7 +1653,7 @@ is
                Obj.Sync_SB_Obj,
                Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
                Obj.Cur_SB,
-               Obj.Cur_Gen);
+               Curr_Gen (Obj));
 
             Obj.State := Sync_Request;
             Pool.Drop_Generated_Primitive (
@@ -1758,7 +1757,7 @@ is
 
             Update_Snapshot_Hash (
                Obj.Write_Back_Obj,
-               Obj.Cur_Gen,
+               Curr_Gen (Obj),
                Obj.Superblock.Snapshots (Curr_Snap (Obj)),
                Prim);
 
@@ -2041,20 +2040,21 @@ is
             --     Sync_Superblock.Peek_Completed_Generation (
             --        Obj.Sync_SB_Obj, Prim);
             pragma Debug (Debug.Print_String ("Old Cur_Gen: "
-               & Debug.To_String (Obj.Cur_Gen)));
-            Obj.Cur_Gen := Obj.Cur_Gen + 1;
+               & Debug.To_String (Curr_Gen (Obj))));
+
+            Obj.Superblock.Snapshots (Curr_Snap (Obj)).Valid := True;
+            Obj.Superblock.Snapshots (Curr_Snap (Obj)).Gen :=
+               Curr_Gen (Obj) + 1;
+
             pragma Debug (Debug.Print_String ("New Cur_Gen: "
-               & Debug.To_String (Obj.Cur_Gen)));
+               & Debug.To_String (Curr_Gen (Obj))));
 
             pragma Debug (Debug.Print_String (" Cur_Gen: "
-               & Debug.To_String (Obj.Cur_Gen)
+               & Debug.To_String (Curr_Gen (Obj))
                & " Curr_Snap: " & Debug.To_String (
                   Debug.Uint64_Type (Curr_Snap (Obj)))));
 
             pragma Debug (Debug.Dump_Superblock (Obj.Cur_SB, Obj.Superblock));
-
-            Obj.Superblock.Snapshots (Curr_Snap (Obj)).Valid := True;
-            Obj.Superblock.Snapshots (Curr_Snap (Obj)).Gen := Obj.Cur_Gen;
 
             pragma Debug (Debug.Print_String (
                "Loop_Sync_SB_Completed_Prims "
@@ -2431,5 +2431,12 @@ is
       ", VBD="                & Virtual_Block_Device.To_String (Obj.VBD) &
       ", Secure_Superblock="  & Debug.To_String (Obj.Secure_Superblock) &
       ")");
+
+   --
+   --  Curr_Gen
+   --
+   function Curr_Gen (Obj : Object_Type)
+   return Generation_Type
+   is (Obj.Superblock.Snapshots (Obj.Superblock.Curr_Snap).Gen);
 
 end CBE.Library;
