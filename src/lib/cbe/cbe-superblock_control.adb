@@ -136,6 +136,13 @@ is
                Ctrl.Jobs (Idx).Submitted_Prim := Prim;
                return;
 
+            when Primitive.Tag_Pool_SB_Ctrl_Rekey_VBA =>
+
+               Ctrl.Jobs (Idx).Operation := Rekey_VBA;
+               Ctrl.Jobs (Idx).State := Submitted;
+               Ctrl.Jobs (Idx).Submitted_Prim := Prim;
+               return;
+
             when others =>
 
                raise Program_Error;
@@ -365,6 +372,46 @@ is
    end Execute_Initialize_Rekeying;
 
    --
+   --  Execute_Rekey_VBA
+   --
+   procedure Execute_Rekey_VBA (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      SB       :        Superblock_Type;
+      Progress : in out Boolean)
+   is
+   begin
+
+      case Job.State is
+      when Submitted =>
+
+         if SB.State = Rekeying then
+
+            Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+               Op     => Primitive_Operation_Type'First,
+               Succ   => False,
+               Tg     => Primitive.Tag_SB_Ctrl_Rekey_VBA,
+               Blk_Nr => Block_Number_Type (SB.Rekeying_Curr_VBA),
+               Idx    => Primitive.Index_Type (Job_Idx));
+
+            Job.State := Rekey_VBA_Pending;
+            Progress := True;
+
+         else
+
+            raise Program_Error;
+
+         end if;
+
+      when others =>
+
+         null;
+
+      end case;
+
+   end Execute_Rekey_VBA;
+
+   --
    --  Execute
    --
    procedure Execute (
@@ -383,6 +430,11 @@ is
 
             Execute_Initialize_Rekeying (
                Ctrl.Jobs (Idx), Idx, SB, SB_Idx, Progress);
+
+         when Rekey_VBA =>
+
+            Execute_Rekey_VBA (
+               Ctrl.Jobs (Idx), Idx, SB, Progress);
 
          when Invalid =>
 
@@ -421,7 +473,7 @@ is
 
             end case;
 
-         when Invalid =>
+         when others =>
 
             null;
 
@@ -430,6 +482,40 @@ is
       end loop Inspect_Each_Job;
       return Primitive.Invalid_Object;
    end Peek_Generated_TA_Primitive;
+
+   --
+   --  Peek_Generated_Rekey_VBA_Primitive
+   --
+   function Peek_Generated_Rekey_VBA_Primitive (Ctrl : Control_Type)
+   return Primitive.Object_Type
+   is
+   begin
+      Inspect_Each_Job :
+      for Idx in Ctrl.Jobs'Range loop
+
+         case Ctrl.Jobs (Idx).Operation is
+         when Rekey_VBA =>
+
+            case Ctrl.Jobs (Idx).State is
+            when Rekey_VBA_Pending =>
+
+               return Ctrl.Jobs (Idx).Generated_Prim;
+
+            when others =>
+
+               null;
+
+            end case;
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop Inspect_Each_Job;
+      return Primitive.Invalid_Object;
+   end Peek_Generated_Rekey_VBA_Primitive;
 
    --
    --  Peek_Generated_Hash
@@ -519,7 +605,7 @@ is
 
             end case;
 
-         when Invalid =>
+         when others =>
 
             null;
 
@@ -554,7 +640,7 @@ is
 
             end case;
 
-         when Invalid =>
+         when others =>
 
             null;
 
@@ -622,6 +708,14 @@ is
 
             if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
                Ctrl.Jobs (Idx).State := Secure_SB_In_Progress;
+               return;
+            end if;
+            raise Program_Error;
+
+         when Rekey_VBA_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
+               Ctrl.Jobs (Idx).State := Rekey_VBA_In_Progress;
                return;
             end if;
             raise Program_Error;
