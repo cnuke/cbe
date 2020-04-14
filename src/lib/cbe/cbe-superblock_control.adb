@@ -390,11 +390,11 @@ is
             Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
                Op     => Primitive_Operation_Type'First,
                Succ   => False,
-               Tg     => Primitive.Tag_SB_Ctrl_Rekey_VBA,
+               Tg     => Primitive.Tag_SB_Ctrl_VBD_Rkg,
                Blk_Nr => Block_Number_Type (SB.Rekeying_Curr_VBA),
                Idx    => Primitive.Index_Type (Job_Idx));
 
-            Job.State := Rekey_VBA_Pending;
+            Job.State := Rekey_VBA_In_VBD_Pending;
             Progress := True;
 
          else
@@ -484,9 +484,9 @@ is
    end Peek_Generated_TA_Primitive;
 
    --
-   --  Peek_Generated_Rekey_VBA_Primitive
+   --  Peek_Generated_VBD_Rkg_Primitive
    --
-   function Peek_Generated_Rekey_VBA_Primitive (Ctrl : Control_Type)
+   function Peek_Generated_VBD_Rkg_Primitive (Ctrl : Control_Type)
    return Primitive.Object_Type
    is
    begin
@@ -497,7 +497,7 @@ is
          when Rekey_VBA =>
 
             case Ctrl.Jobs (Idx).State is
-            when Rekey_VBA_Pending =>
+            when Rekey_VBA_In_VBD_Pending =>
 
                return Ctrl.Jobs (Idx).Generated_Prim;
 
@@ -515,7 +515,7 @@ is
 
       end loop Inspect_Each_Job;
       return Primitive.Invalid_Object;
-   end Peek_Generated_Rekey_VBA_Primitive;
+   end Peek_Generated_VBD_Rkg_Primitive;
 
    --
    --  Peek_Generated_Hash
@@ -712,10 +712,10 @@ is
             end if;
             raise Program_Error;
 
-         when Rekey_VBA_Pending =>
+         when Rekey_VBA_In_VBD_Pending =>
 
             if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
-               Ctrl.Jobs (Idx).State := Rekey_VBA_In_Progress;
+               Ctrl.Jobs (Idx).State := Rekey_VBA_In_VBD_In_Progress;
                return;
             end if;
             raise Program_Error;

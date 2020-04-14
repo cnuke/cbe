@@ -62,9 +62,9 @@ is
       Progress : in out Boolean);
 
    --
-   --  Peek_Generated_Rekey_VBA_Primitive
+   --  Peek_Generated_VBD_Rkg_Primitive
    --
-   function Peek_Generated_Rekey_VBA_Primitive (Ctrl : Control_Type)
+   function Peek_Generated_VBD_Rkg_Primitive (Ctrl : Control_Type)
    return Primitive.Object_Type;
 
    --
@@ -140,9 +140,9 @@ private
 
    type Job_State_Type is (
       Submitted,
-      Rekey_VBA_Pending,
-      Rekey_VBA_In_Progress,
-      Rekey_VBA_Completed,
+      Rekey_VBA_In_VBD_Pending,
+      Rekey_VBA_In_VBD_In_Progress,
+      Rekey_VBA_In_VBD_Completed,
       Create_Key_Pending,
       Create_Key_In_Progress,
       Create_Key_Completed,
