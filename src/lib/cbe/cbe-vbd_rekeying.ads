@@ -36,8 +36,13 @@ is
    --  Submit_Primitive
    --
    procedure Submit_Primitive (
-      Rkg  : in out Rekeying_Type;
-      Prim :        Primitive.Object_Type);
+      Rkg              : in out Rekeying_Type;
+      Prim             :        Primitive.Object_Type;
+      VBA              :        Virtual_Block_Address_Type;
+      Snapshots        :        Snapshots_Type;
+      Snapshots_Degree :        Tree_Degree_Type;
+      Old_Key_ID       :        Key_ID_Type;
+      New_Key_ID       :        Key_ID_Type);
 
    --
    --  Peek_Completed_Primitive
@@ -137,11 +142,15 @@ private
       Completed
    );
 
+   subtype Type_1_Node_Blocks_Index_Type is
+      Tree_Level_Index_Type range
+         Tree_Level_Index_Type'First + 1 .. Tree_Level_Index_Type'Last;
+
    type Type_1_Node_Blocks_Type
-   is array (Tree_Level_Index_Type) of Type_1_Node_Block_Type;
+   is array (Type_1_Node_Blocks_Index_Type) of Type_1_Node_Block_Type;
 
    type Type_1_Node_Blocks_PBAs_Type
-   is array (Tree_Level_Index_Type) of Physical_Block_Address_Type;
+   is array (Type_1_Node_Blocks_Index_Type) of Physical_Block_Address_Type;
 
    type Job_Type is record
       Operation         : Job_Operation_Type;

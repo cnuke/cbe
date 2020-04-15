@@ -1922,7 +1922,18 @@ is
                not Primitive.Valid (Prim) or else
                not VBD_Rekeying.Primitive_Acceptable (Obj.VBD_Rkg);
 
-            VBD_Rekeying.Submit_Primitive (Obj.VBD_Rkg, Prim);
+            VBD_Rekeying.Submit_Primitive (
+               Obj.VBD_Rkg, Prim,
+               Superblock_Control.Peek_Generated_VBA (
+                  Obj.SB_Ctrl, Prim, Obj.Superblock),
+               Superblock_Control.Peek_Generated_Snapshots (
+                  Obj.SB_Ctrl, Prim, Obj.Superblock),
+               Superblock_Control.Peek_Generated_Snapshots_Degree (
+                  Obj.SB_Ctrl, Prim, Obj.Superblock),
+               Superblock_Control.Peek_Generated_Old_Key_ID (
+                  Obj.SB_Ctrl, Prim, Obj.Superblock),
+               Superblock_Control.Peek_Generated_New_Key_ID (
+                  Obj.SB_Ctrl, Prim, Obj.Superblock));
 
             Superblock_Control.Drop_Generated_Primitive (Obj.SB_Ctrl, Prim);
             Progress := True;

@@ -8,9 +8,88 @@
 
 pragma Ada_2012;
 
+with SHA256_4K;
+
 package body CBE.VBD_Rekeying
 with SPARK_Mode
 is
+   --
+   --  CBE_Hash_From_SHA256_4K_Hash
+   --
+   procedure CBE_Hash_From_SHA256_4K_Hash (
+      CBE_Hash : out Hash_Type;
+      SHA_Hash :     SHA256_4K.Hash_Type);
+
+   --
+   --  SHA256_4K_Data_From_CBE_Data
+   --
+   procedure SHA256_4K_Data_From_CBE_Data (
+      SHA_Data : out SHA256_4K.Data_Type;
+      CBE_Data :     Block_Data_Type);
+
+   --
+   --  Hash_Of_T1_Node_Blk
+   --
+   function Hash_Of_T1_Node_Blk (T1_Blk : Type_1_Node_Block_Type)
+   return Hash_Type;
+
+   --
+   --  CBE_Hash_From_SHA256_4K_Hash
+   --
+   procedure CBE_Hash_From_SHA256_4K_Hash (
+      CBE_Hash : out Hash_Type;
+      SHA_Hash :     SHA256_4K.Hash_Type)
+   is
+      SHA_Idx : SHA256_4K.Hash_Index_Type := SHA256_4K.Hash_Index_Type'First;
+   begin
+      for CBE_Idx in CBE_Hash'Range loop
+         CBE_Hash (CBE_Idx) := Byte_Type (SHA_Hash (SHA_Idx));
+         if CBE_Idx < CBE_Hash'Last then
+            SHA_Idx := SHA_Idx + 1;
+         end if;
+      end loop;
+   end CBE_Hash_From_SHA256_4K_Hash;
+
+   --
+   --  SHA256_4K_Data_From_CBE_Data
+   --
+   procedure SHA256_4K_Data_From_CBE_Data (
+      SHA_Data : out SHA256_4K.Data_Type;
+      CBE_Data :     Block_Data_Type)
+   is
+      CBE_Idx : Block_Data_Index_Type := Block_Data_Index_Type'First;
+   begin
+      for SHA_Idx in SHA_Data'Range loop
+         SHA_Data (SHA_Idx) := SHA256_4K.Byte (CBE_Data (CBE_Idx));
+         if SHA_Idx < SHA_Data'Last then
+            CBE_Idx := CBE_Idx + 1;
+         end if;
+      end loop;
+   end SHA256_4K_Data_From_CBE_Data;
+
+   --
+   --  Hash_Of_T1_Node_Blk
+   --
+   function Hash_Of_T1_Node_Blk (T1_Blk : Type_1_Node_Block_Type)
+   return Hash_Type
+   is
+   begin
+      Declare_Hash_Data :
+      declare
+         SHA_Hash : SHA256_4K.Hash_Type;
+         SHA_Data : SHA256_4K.Data_Type;
+         CBE_Data : Block_Data_Type;
+         CBE_Hash : Hash_Type;
+      begin
+         Block_Data_From_Type_1_Node_Block (CBE_Data, T1_Blk);
+         SHA256_4K_Data_From_CBE_Data (SHA_Data, CBE_Data);
+         SHA256_4K.Hash (SHA_Data, SHA_Hash);
+         CBE_Hash_From_SHA256_4K_Hash (CBE_Hash, SHA_Hash);
+         return CBE_Hash;
+      end Declare_Hash_Data;
+
+   end Hash_Of_T1_Node_Blk;
+
    --
    --  Initialize_Rekeying
    --
@@ -50,19 +129,32 @@ is
    --  Submit_Primitive
    --
    procedure Submit_Primitive (
-      Rkg  : in out Rekeying_Type;
-      Prim :        Primitive.Object_Type)
+      Rkg              : in out Rekeying_Type;
+      Prim             :        Primitive.Object_Type;
+      VBA              :        Virtual_Block_Address_Type;
+      Snapshots        :        Snapshots_Type;
+      Snapshots_Degree :        Tree_Degree_Type;
+      Old_Key_ID       :        Key_ID_Type;
+      New_Key_ID       :        Key_ID_Type)
    is
    begin
+
       Find_Invalid_Job :
       for Idx in Rkg.Jobs'Range loop
+
          if Rkg.Jobs (Idx).Operation = Invalid then
+
             case Primitive.Tag (Prim) is
             when Primitive.Tag_SB_Ctrl_VBD_Rkg =>
 
-               Rkg.Jobs (Idx).Operation := Rekey_VBA;
-               Rkg.Jobs (Idx).State := Submitted;
-               Rkg.Jobs (Idx).Submitted_Prim := Prim;
+               Rkg.Jobs (Idx).Operation        := Rekey_VBA;
+               Rkg.Jobs (Idx).Submitted_Prim   := Prim;
+               Rkg.Jobs (Idx).VBA              := VBA;
+               Rkg.Jobs (Idx).Snapshots        := Snapshots;
+               Rkg.Jobs (Idx).Snapshots_Degree := Snapshots_Degree;
+               Rkg.Jobs (Idx).Old_Key_ID       := Old_Key_ID;
+               Rkg.Jobs (Idx).New_Key_ID       := New_Key_ID;
+               Rkg.Jobs (Idx).State            := Submitted;
                return;
 
             when others =>
@@ -70,10 +162,12 @@ is
                raise Program_Error;
 
             end case;
-         end if;
-      end loop Find_Invalid_Job;
 
+         end if;
+
+      end loop Find_Invalid_Job;
       raise Program_Error;
+
    end Submit_Primitive;
 
    --
@@ -128,6 +222,40 @@ is
       case Job.State is
       when Submitted =>
 
+         Declare_Newest_Snap_Idx :
+         declare
+            Newest_Snap_Idx : Snapshots_Index_Type :=
+               Snapshots_Index_Type'First;
+
+            Newest_Snap_Idx_Valid : Boolean := False;
+         begin
+            For_Each_Snap_Idx :
+            for Snap_Idx in Job.Snapshots'Range loop
+               if Job.Snapshots (Snap_Idx).Valid and then
+                  (not Newest_Snap_Idx_Valid or else
+                   Job.Snapshots (Snap_Idx).Gen >
+                   Job.Snapshots (Newest_Snap_Idx).Gen)
+               then
+                  Newest_Snap_Idx := Snap_Idx;
+                  Newest_Snap_Idx_Valid := True;
+               end if;
+            end loop For_Each_Snap_Idx;
+
+            if Newest_Snap_Idx_Valid then
+               Job.Snapshot_Idx := Newest_Snap_Idx;
+            else
+               raise Program_Error;
+            end if;
+         end Declare_Newest_Snap_Idx;
+
+         Job.First_Snapshot := True;
+         Job.T1_Blk_Idx :=
+            Type_1_Node_Blocks_Index_Type (
+               Job.Snapshots (Job.Snapshot_Idx).Max_Level);
+
+         Job.T1_Blks_Old_PBAs (Job.T1_Blk_Idx) :=
+            Job.Snapshots (Job.Snapshot_Idx).PBA;
+
          Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
             Op     => Read,
             Succ   => False,
@@ -137,6 +265,17 @@ is
 
          Job.State := Read_Root_Node_Pending;
          Progress := True;
+
+      when Read_Root_Node_Completed =>
+
+         if Hash_Of_T1_Node_Blk (Job.T1_Blks (Job.T1_Blk_Idx)) =
+               Job.Snapshots (Job.Snapshot_Idx).Hash
+         then
+            Job.State := Read_Inner_Node_Pending;
+            Progress := True;
+         else
+            raise Program_Error;
+         end if;
 
       when others =>
 

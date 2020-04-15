@@ -102,6 +102,51 @@ is
    return Primitive.Object_Type;
 
    --
+   --  Peek_Generated_VBA
+   --
+   function Peek_Generated_VBA (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Virtual_Block_Address_Type;
+
+   --
+   --  Peek_Generated_Snapshots
+   --
+   function Peek_Generated_Snapshots (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Snapshots_Type;
+
+   --
+   --  Peek_Generated_Snapshots_Degree
+   --
+   function Peek_Generated_Snapshots_Degree (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Tree_Degree_Type;
+
+   --
+   --  Peek_Generated_Old_Key_ID
+   --
+   function Peek_Generated_Old_Key_ID (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Key_ID_Type;
+
+   --
+   --  Peek_Generated_New_Key_ID
+   --
+   function Peek_Generated_New_Key_ID (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Key_ID_Type;
+
+   --
    --  Drop_Generated_Primitive
    --
    procedure Drop_Generated_Primitive (

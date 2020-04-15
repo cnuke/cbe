@@ -391,7 +391,7 @@ is
                Op     => Primitive_Operation_Type'First,
                Succ   => False,
                Tg     => Primitive.Tag_SB_Ctrl_VBD_Rkg,
-               Blk_Nr => Block_Number_Type (SB.Rekeying_Curr_VBA),
+               Blk_Nr => Block_Number_Type'First,
                Idx    => Primitive.Index_Type (Job_Idx));
 
             Job.State := Rekey_VBA_In_VBD_Pending;
@@ -548,6 +548,249 @@ is
       raise Program_Error;
 
    end Peek_Generated_Hash;
+
+   --
+   --  Peek_Generated_VBA
+   --
+   function Peek_Generated_VBA (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Virtual_Block_Address_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      case Ctrl.Jobs (Idx).Operation is
+      when Rekey_VBA =>
+
+         case Ctrl.Jobs (Idx).State is
+         when Rekey_VBA_In_VBD_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) and then
+               SB.State = Rekeying
+            then
+               return SB.Rekeying_Curr_VBA;
+            else
+               raise Program_Error;
+            end if;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_VBA;
+
+   --
+   --  Peek_Generated_Snapshots
+   --
+   function Peek_Generated_Snapshots (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Snapshots_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      case Ctrl.Jobs (Idx).Operation is
+      when Rekey_VBA =>
+
+         case Ctrl.Jobs (Idx).State is
+         when Rekey_VBA_In_VBD_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) and then
+               SB.State = Rekeying
+            then
+               return SB.Snapshots;
+            else
+               raise Program_Error;
+            end if;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_Snapshots;
+
+   --
+   --  Peek_Generated_Snapshots_Degree
+   --
+   function Peek_Generated_Snapshots_Degree (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Tree_Degree_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      case Ctrl.Jobs (Idx).Operation is
+      when Rekey_VBA =>
+
+         case Ctrl.Jobs (Idx).State is
+         when Rekey_VBA_In_VBD_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) and then
+               SB.State = Rekeying
+            then
+               return SB.Degree;
+            else
+               raise Program_Error;
+            end if;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_Snapshots_Degree;
+
+   --
+   --  Peek_Generated_Old_Key_ID
+   --
+   function Peek_Generated_Old_Key_ID (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Key_ID_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      case Ctrl.Jobs (Idx).Operation is
+      when Rekey_VBA =>
+
+         case Ctrl.Jobs (Idx).State is
+         when Rekey_VBA_In_VBD_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) and then
+               SB.State = Rekeying
+            then
+
+               Declare_Key_Indices :
+               declare
+                  Oldest_Key_Idx : Keys_Index_Type := Keys_Index_Type'First;
+               begin
+
+                  For_Each_Key_Idx :
+                  for Key_Idx in SB.Keys'Range loop
+
+                     if SB.Keys (Key_Idx).ID < SB.Keys (Oldest_Key_Idx).ID then
+                        Oldest_Key_Idx := Key_Idx;
+                     end if;
+
+                  end loop For_Each_Key_Idx;
+                  return SB.Keys (Oldest_Key_Idx).ID;
+
+               end Declare_Key_Indices;
+
+            else
+
+               raise Program_Error;
+
+            end if;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_Old_Key_ID;
+
+   --
+   --  Peek_Generated_New_Key_ID
+   --
+   function Peek_Generated_New_Key_ID (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type;
+      SB   : Superblock_Type)
+   return Key_ID_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      case Ctrl.Jobs (Idx).Operation is
+      when Rekey_VBA =>
+
+         case Ctrl.Jobs (Idx).State is
+         when Rekey_VBA_In_VBD_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) and then
+               SB.State = Rekeying
+            then
+
+               Declare_Key_Indices :
+               declare
+                  Newest_Key_Idx : Keys_Index_Type := Keys_Index_Type'First;
+               begin
+
+                  For_Each_Key_Idx :
+                  for Key_Idx in SB.Keys'Range loop
+
+                     if SB.Keys (Key_Idx).ID > SB.Keys (Newest_Key_Idx).ID then
+                        Newest_Key_Idx := Key_Idx;
+                     end if;
+
+                  end loop For_Each_Key_Idx;
+                  return SB.Keys (Newest_Key_Idx).ID;
+
+               end Declare_Key_Indices;
+
+            else
+
+               raise Program_Error;
+
+            end if;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_New_Key_ID;
 
    --
    --  Peek_Generated_Key_Plaintext
