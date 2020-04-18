@@ -384,6 +384,12 @@ struct Cbe::Block_session_component
 		_config_rom { config_rom },
 		_alloc      { alloc }
 	{
+		for (unsigned idx = 0;
+		     idx < sizeof(_blk_data.values)/sizeof(_blk_data.values[0]);
+		     idx++)
+		{
+			_blk_data.values[idx] = (char)idx;
+		}
 		_config_rom.xml().with_sub_node("tests", [&] (Xml_node const &node) {
 			_read_tests_node(node);
 		});
