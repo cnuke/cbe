@@ -428,6 +428,7 @@ private
       New_Free_Tree_Prim           : Primitive.Object_Type;
       Meta_Tree_Obj                : Meta_Tree.Object_Type;
       Cur_SB                       : Superblocks_Index_Type;
+      Cur_Gen                      : Generation_Type;
       Last_Secured_Generation      : Generation_Type;
       Secure_Superblock            : Boolean;
       Wait_For_Front_End           : Wait_For_Event_Type;
@@ -592,11 +593,5 @@ private
    procedure Execute_Cache_Completed_Prims (
       Obj      : in out Object_Type;
       Progress : in out Boolean);
-
-   --
-   --  Curr_Gen
-   --
-   function Curr_Gen (Obj : Object_Type)
-   return Generation_Type;
 
 end CBE.Library;
