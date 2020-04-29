@@ -64,6 +64,11 @@ struct Snapshot_id_list
 };
 
 
+
+// XXX
+#define INVALID_TAG 0x666
+
+
 class Vfs_cbe::Wrapper
 {
 	private:
@@ -308,13 +313,13 @@ class Vfs_cbe::Wrapper
 			switch (_backend_request.state) {
 			case Backend_request::State::NONE:
 
-				_backend_request.count = request.count * Cbe::BLOCK_SIZE;
+				_backend_request.count = request.count() * Cbe::BLOCK_SIZE;
 				if (_backend_request.count > sizeof (_backend_request.block_data)) {
 					struct Buffer_too_small { };
 					throw Buffer_too_small ();
 				}
 
-				request.tag = data_index.value;
+				request.tag(data_index.value);
 
 				_backend_request.cbe_request = request;
 				_backend_request.state       = Backend_request::State::READ_PENDING;
@@ -322,7 +327,7 @@ class Vfs_cbe::Wrapper
 			[[fallthrough]]
 			case Backend_request::State::READ_PENDING:
 
-				_backend->seek(request.block_number * Cbe::BLOCK_SIZE);
+				_backend->seek(request.block_number() * Cbe::BLOCK_SIZE);
 				if (!_backend->fs().queue_read(_backend, _backend_request.count)) {
 					return progress;
 				}
@@ -383,13 +388,13 @@ class Vfs_cbe::Wrapper
 			switch (_backend_request.state) {
 			case Backend_request::State::NONE:
 
-				_backend_request.count = request.count * Cbe::BLOCK_SIZE;
+				_backend_request.count = request.count() * Cbe::BLOCK_SIZE;
 				if (_backend_request.count > sizeof (_backend_request.block_data)) {
 					struct Buffer_too_small { };
 					throw Buffer_too_small ();
 				}
 
-				request.tag = data_index.value;
+				request.tag(data_index.value);
 
 				_backend_request.cbe_request = request;
 				_backend_request.state       = Backend_request::State::WRITE_PENDING;
@@ -397,7 +402,7 @@ class Vfs_cbe::Wrapper
 			[[fallthrough]]
 			case Backend_request::State::WRITE_PENDING:
 
-				_backend->seek(request.block_number * Cbe::BLOCK_SIZE);
+				_backend->seek(request.block_number() * Cbe::BLOCK_SIZE);
 
 				_backend_request.block_data = _io_data.item(data_index);
 				_cbe->io_request_in_progress(data_index);
@@ -460,7 +465,7 @@ class Vfs_cbe::Wrapper
 			switch (_backend_request.state) {
 			case Backend_request::State::NONE:
 
-				request.tag = data_index.value;
+				request.tag(data_index.value);
 
 				_backend_request.cbe_request = request;
 				_backend_request.state       = Backend_request::State::SYNC_PENDING;
@@ -627,7 +632,8 @@ class Vfs_cbe::Wrapper
 					Cbe::Request::Success::FALSE,
 					0,
 					0,
-					1);
+					1,
+					INVALID_TAG);
 				_frontend_request.count   = 0;
 				_frontend_request.snap_id = 0;
 				_frontend_request.state   = Frontend_request::State::PENDING;
@@ -652,7 +658,8 @@ class Vfs_cbe::Wrapper
 					Cbe::Request::Success::FALSE,
 					offset / Cbe::BLOCK_SIZE,
 					(uint64_t)&_helper_read_request.block_data,
-					1);
+					1,
+					INVALID_TAG);
 				_helper_read_request.state = Helper_request::State::PENDING;
 
 				_frontend_request.helper_offset = (offset % Cbe::BLOCK_SIZE);
@@ -675,7 +682,8 @@ class Vfs_cbe::Wrapper
 				Cbe::Request::Success::FALSE,
 				offset / Cbe::BLOCK_SIZE,
 				(uint64_t)data,
-				(uint32_t)(count / Cbe::BLOCK_SIZE));
+				(uint32_t)(count / Cbe::BLOCK_SIZE),
+				INVALID_TAG);
 
 			if (_verbose) {
 				if (unaligned_request) {
@@ -720,7 +728,7 @@ class Vfs_cbe::Wrapper
 
 			if (req.state != ST::NONE) {
 				Cbe::Io_buffer::Index const data_index {
-					req.cbe_request.tag };
+					req.cbe_request.tag() };
 
 				if (req.cbe_request.valid()) {
 					if (req.cbe_request.read()) {
@@ -764,7 +772,7 @@ class Vfs_cbe::Wrapper
 				using ST = Frontend_request::State;
 
 				Cbe::Request const &request = frontend_request.cbe_request;
-				Cbe::Virtual_block_address const vba = request.block_number;
+				Cbe::Virtual_block_address const vba = request.block_number();
 				uint32_t const snap_id = frontend_request.snap_id;
 
 				if (vba > cbe.max_vba()) {
@@ -773,14 +781,14 @@ class Vfs_cbe::Wrapper
 					return false;
 				}
 
-				if (vba + request.count < vba) {
+				if (vba + request.count() < vba) {
 					warning("reject wraping request", vba);
 					_frontend_request.state = ST::ERROR_EOF;
 					return false;
 				}
 
-				if (vba + request.count > (cbe.max_vba() + 1)) {
-					warning("reject invalid request ", vba, " ", request.count);
+				if (vba + request.count() > (cbe.max_vba() + 1)) {
+					warning("reject invalid request ", vba, " ", request.count());
 					_frontend_request.state = ST::ERROR_EOF;
 					return false;
 				}
@@ -820,7 +828,7 @@ class Vfs_cbe::Wrapper
 			if (_helper_read_request.complete()) {
 				if (frontend_request.cbe_request.read()) {
 					char       * dst = reinterpret_cast<char*>
-						(frontend_request.cbe_request.offset);
+						(frontend_request.cbe_request.offset());
 					char const * src = reinterpret_cast<char const*>
 						(&_helper_read_request.block_data) + frontend_request.helper_offset;
 
@@ -853,14 +861,18 @@ class Vfs_cbe::Wrapper
 						char       * dst = reinterpret_cast<char*>
 							(&_helper_write_request.block_data) + frontend_request.helper_offset;
 						char const * src = reinterpret_cast<char const*>
-							(frontend_request.cbe_request.offset);
+							(frontend_request.cbe_request.offset());
 						Genode::memcpy(dst, src, _frontend_request.count);
 					}
 
 					/* re-use request */
-					_helper_write_request.cbe_request = _helper_read_request.cbe_request;
-					_helper_write_request.cbe_request.operation = Cbe::Request::Operation::WRITE;
-					_helper_write_request.cbe_request.success   = Cbe::Request::Success::FALSE;
+					_helper_write_request.cbe_request = Cbe::Request(
+						Cbe::Request::Operation::WRITE,
+						Cbe::Request::Success::FALSE,
+						_helper_read_request.cbe_request.block_number(),
+						_helper_read_request.cbe_request.offset(),
+						_helper_read_request.cbe_request.count(),
+						_helper_read_request.cbe_request.tag());
 
 					_helper_write_request.state = Helper_request::State::PENDING;
 					_helper_read_request.state  = Helper_request::State::NONE;
@@ -895,7 +907,7 @@ class Vfs_cbe::Wrapper
 				}
 
 				Cbe::Block_data &data = *reinterpret_cast<Cbe::Block_data*>(
-					cbe_request.offset + (prim_index * Cbe::BLOCK_SIZE));
+					cbe_request.offset() + (prim_index * Cbe::BLOCK_SIZE));
 
 				Cbe::Crypto_plain_buffer::Index data_index(~0);
 				bool const data_index_valid =
@@ -919,7 +931,7 @@ class Vfs_cbe::Wrapper
 				}
 
 				Cbe::Block_data &data = *reinterpret_cast<Cbe::Block_data*>(
-					cbe_request.offset + (prim_index * Cbe::BLOCK_SIZE));
+					cbe_request.offset() + (prim_index * Cbe::BLOCK_SIZE));
 
 				progress = cbe.supply_client_data(0, cbe_request, data);
 				progress |= true; /// XXX why?
@@ -941,7 +953,7 @@ class Vfs_cbe::Wrapper
 				Cbe::Request request = cbe.crypto_cipher_data_required(data_index);
 				if (!request.valid() || !cry.encryption_request_acceptable()) { break; }
 
-				request.tag = data_index.value;
+				request.tag(data_index.value);
 				cry.submit_encryption_request(request, plain.item(data_index), 0);
 				cbe.crypto_cipher_data_requested(data_index);
 				progress |= true;
@@ -952,11 +964,11 @@ class Vfs_cbe::Wrapper
 				if (!request.valid()) {
 					break;
 				}
-				Cbe::Crypto_cipher_buffer::Index const data_index(request.tag);
+				Cbe::Crypto_cipher_buffer::Index const data_index(request.tag());
 				if (!cry.supply_cipher_data(request, cipher.item(data_index))) {
 					break;
 				}
-				bool const success = request.success == Cbe::Request::Success::TRUE;
+				bool const success = request.success() == Cbe::Request::Success::TRUE;
 				cbe.supply_crypto_cipher_data(data_index, success);
 				progress |= true;
 			}
@@ -967,7 +979,7 @@ class Vfs_cbe::Wrapper
 				Cbe::Request request = cbe.crypto_plain_data_required(data_index);
 				if (!request.valid() || !cry.decryption_request_acceptable()) { break; }
 
-				request.tag = data_index.value;
+				request.tag(data_index.value);
 				cry.submit_decryption_request(request, cipher.item(data_index), 0);
 				cbe.crypto_plain_data_requested(data_index);
 				progress |= true;
@@ -977,11 +989,11 @@ class Vfs_cbe::Wrapper
 				Cbe::Request const request = cry.peek_completed_decryption_request();
 				if (!request.valid()) { break; }
 
-				Cbe::Crypto_plain_buffer::Index const data_index(request.tag);
+				Cbe::Crypto_plain_buffer::Index const data_index(request.tag());
 				if (!cry.supply_plain_data(request, plain.item(data_index))) {
 					break;
 				}
-				bool const success = request.success == Cbe::Request::Success::TRUE;
+				bool const success = request.success() == Cbe::Request::Success::TRUE;
 				cbe.supply_crypto_plain_data(data_index, success);
 				progress |= true;
 			}
