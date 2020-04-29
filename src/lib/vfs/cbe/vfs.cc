@@ -67,6 +67,7 @@ struct Snapshot_id_list
 
 // XXX
 #define INVALID_TAG 0x666
+#define UNSET_KEY 0
 
 
 class Vfs_cbe::Wrapper
@@ -633,6 +634,7 @@ class Vfs_cbe::Wrapper
 					0,
 					0,
 					1,
+					UNSET_KEY,
 					INVALID_TAG);
 				_frontend_request.count   = 0;
 				_frontend_request.snap_id = 0;
@@ -659,6 +661,7 @@ class Vfs_cbe::Wrapper
 					offset / Cbe::BLOCK_SIZE,
 					(uint64_t)&_helper_read_request.block_data,
 					1,
+					UNSET_KEY,
 					INVALID_TAG);
 				_helper_read_request.state = Helper_request::State::PENDING;
 
@@ -683,6 +686,7 @@ class Vfs_cbe::Wrapper
 				offset / Cbe::BLOCK_SIZE,
 				(uint64_t)data,
 				(uint32_t)(count / Cbe::BLOCK_SIZE),
+				UNSET_KEY,
 				INVALID_TAG);
 
 			if (_verbose) {
@@ -872,6 +876,7 @@ class Vfs_cbe::Wrapper
 						_helper_read_request.cbe_request.block_number(),
 						_helper_read_request.cbe_request.offset(),
 						_helper_read_request.cbe_request.count(),
+						_helper_read_request.cbe_request.key_id(),
 						_helper_read_request.cbe_request.tag());
 
 					_helper_write_request.state = Helper_request::State::PENDING;
