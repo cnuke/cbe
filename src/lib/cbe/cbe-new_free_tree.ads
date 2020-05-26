@@ -172,7 +172,10 @@ private
       Gen : Generation_Type)
    return Boolean is (T.Gen = 0 or else T.Gen = Gen);
 
-   type Node_Index_Type is new Byte_Type;
+   type Node_Index_Type is range 0 .. Tree_Max_Degree - 1;
+
+   type Node_Index_Array_Type is array (Tree_Level_Index_Type)
+      of Node_Index_Type;
 
    function Node_Index_Invalid return Node_Index_Type
    is (Node_Index_Type'Last);
@@ -438,6 +441,10 @@ private
       Current_Key_ID   : Key_ID_Type;
       Rekeying_VBA     : Virtual_Block_Address_Type;
 
+      Current_Alloc_VBA : Virtual_Block_Address_Type;
+      Max_Alloc_VBA : Virtual_Block_Address_Type;
+      VBA_Indices : Node_Index_Array_Type;
+
    end record;
 
    function Write_Back_Data_Invalid return Write_Back_Data_Type
@@ -484,7 +491,8 @@ private
       Secured_Gen     :        Generation_Type;
       Rekeying        :        Boolean;
       Previous_Key_ID :        Key_ID_Type;
-      Rekeying_VBA    :        Virtual_Block_Address_Type);
+      Rekeying_VBA    :        Virtual_Block_Address_Type;
+      Node_Index      :        Node_Index_Type);
 
    function Block_From_Level_N_Node (Entries : Type_1_Node_Block_Type)
    return Block_Data_Type;
@@ -493,7 +501,9 @@ private
       Stack       : in out Type_1_Info_Stack.Object_Type;
       Entries     :    out Type_1_Node_Block_Type;
       Block_Data  :        Block_Data_Type;
-      Current_Gen :        Generation_Type);
+      Current_Gen :        Generation_Type;
+      Node_Index  :        Node_Index_Type;
+      Highest_Lvl :        Boolean);
 
    procedure Update_Upper_N_Stack (
       T          :        Type_1_Info_Type;
@@ -529,7 +539,8 @@ private
       Rekeying         :        Boolean;
       Previous_Key_ID  :        Key_ID_Type;
       Current_Key_ID   :        Key_ID_Type;
-      Rekeying_VBA     :        Virtual_Block_Address_Type);
+      Rekeying_VBA     :        Virtual_Block_Address_Type;
+      Node_Index       : in out Node_Index_Type);
 
    procedure Execute_Update (
       Obj              : in out Object_Type;

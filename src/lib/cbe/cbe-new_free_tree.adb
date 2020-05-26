@@ -54,6 +54,35 @@ is
       end loop;
    end SHA256_4K_Data_From_CBE_Data;
 
+   function Child_Idx_For_VBA (
+      VBA  : Virtual_Block_Address_Type;
+      Lvl  : Tree_Level_Index_Type;
+      Degr : Tree_Degree_Type)
+   return Node_Index_Type;
+
+   function Child_Idx_For_VBA (
+      VBA  : Virtual_Block_Address_Type;
+      Lvl  : Tree_Level_Index_Type;
+      Degr : Tree_Degree_Type)
+   return Node_Index_Type
+   is
+      Degree_Log_2 : constant Tree_Degree_Log_2_Type :=
+         Tree_Degree_Log_2_Type (Log_2 (Unsigned_32 (Degr)));
+
+      Degree_Mask : constant Tree_Degree_Mask_Type :=
+         Tree_Degree_Mask_Type (
+            Shift_Left (Unsigned_32 (1), Natural (Degree_Log_2)) - 1);
+   begin
+      return
+         Node_Index_Type (
+            Shift_Right (
+               Unsigned_64 (VBA),
+               Natural (Unsigned_32 (Degree_Log_2) * (
+                        Unsigned_32 (Lvl) - 1)))
+            and
+            Unsigned_64 (Degree_Mask));
+   end Child_Idx_For_VBA;
+
    procedure Initialized_Object (Obj : out Object_Type)
    is
    begin
@@ -97,6 +126,10 @@ is
       Obj.VBD_Highest_VBA  := Virtual_Block_Address_Type'First;
       Obj.Free_Gen         := Generation_Type'First;
 
+      Obj.Current_Alloc_VBA := Virtual_Block_Address_Type'Last;
+      Obj.Max_Alloc_VBA     := Virtual_Block_Address_Type'Last;
+      Obj.VBA_Indices       := (others => Node_Index_Type'First);
+
    end Initialized_Object;
 
    procedure Reset_Block_State (Obj : in out Object_Type)
@@ -120,6 +153,7 @@ is
    function  Log_2 (Value : Unsigned_32)
    return Unsigned_32
    is
+
       type Bit_Index_Type is range 0 .. 31;
    begin
       if Value = 0 then
@@ -176,6 +210,63 @@ is
       Obj.Free_Gen         := Free_Gen;
       Obj.Requested_Blocks := Requested_Blocks;
       Obj.Exchanged_Blocks := 0;
+
+      Obj.Max_Alloc_VBA := Virtual_Block_Address_Type (
+         Obj.Tree_Geom.Leafs - 1);
+
+      if Obj.Current_Alloc_VBA = Virtual_Block_Address_Type'Last
+         or else Obj.Current_Alloc_VBA > Virtual_Block_Address_Type (
+            Obj.Tree_Geom.Leafs)
+      then
+         Obj.Current_Alloc_VBA := Virtual_Block_Address_Type'First;
+
+         --  Debug.Print_String ("VBA: "
+         --     & Debug.To_String (Obj.Current_Alloc_VBA));
+
+         for Tree_Level_Index in 1 .. Obj.Tree_Geom.Max_Level loop
+            Obj.VBA_Indices (Tree_Level_Index - 1) :=
+               Child_Idx_For_VBA (Obj.Current_Alloc_VBA, Tree_Level_Index,
+                  Obj.Tree_Geom.Edges);
+         end loop;
+
+         --  for Tree_Level_Index in 1 .. Obj.Tree_Geom.Max_Level loop
+         --     Debug.Print_String ("VBA: "
+         --        & Debug.To_String (Obj.Current_Alloc_VBA) & " Level: "
+         --        & Debug.To_String (Debug.Uint64_Type (Tree_Level_Index))
+         --        & " Index: " & Debug.To_String (Debug.Uint64_Type (
+         --           Obj.VBA_Indices (Tree_Level_Index - 1))));
+         --  end loop;
+
+      --  else
+      --     Obj.Current_Alloc_VBA := Virtual_Block_Address_Type'First;
+      --        --  Obj.Current_Alloc_VBA +
+      --        --  (Virtual_Block_Address_Type (Obj.Tree_Geom.Edges) / 2);
+
+      --     --  Debug.Print_String ("VBA: "
+      --     --     & Debug.To_String (Obj.Current_Alloc_VBA));
+
+      --     for Tree_Level_Index in 1 .. Obj.Tree_Geom.Max_Level loop
+      --        Obj.VBA_Indices (Tree_Level_Index - 1) :=
+      --           Child_Idx_For_VBA (Obj.Current_Alloc_VBA, Tree_Level_Index,
+      --              Obj.Tree_Geom.Edges);
+      --     end loop;
+
+      --     --  for Tree_Level_Index in 1 .. Obj.Tree_Geom.Max_Level loop
+      --     --     Debug.Print_String ("VBA: "
+      --     --        & Debug.To_String (Obj.Current_Alloc_VBA) & " Level: "
+      --     --        & Debug.To_String (Debug.Uint64_Type (Tree_Level_Index))
+      --     --        & " Index: " & Debug.To_String (Debug.Uint64_Type (
+      --     --           Obj.VBA_Indices (Tree_Level_Index - 1))));
+      --     --  end loop;
+
+      end if;
+
+      --  for Tree_Level_Index in 0 .. Obj.Tree_Geom.Max_Level loop
+      --     Debug.Print_String ("VBA: Level: "
+      --        & Debug.To_String (Debug.Uint64_Type (Tree_Level_Index))
+      --        & " Index: " & Debug.To_String (Debug.Uint64_Type (
+      --           Obj.VBA_Indices (Tree_Level_Index))));
+      --  end loop;
 
       Reset_Block_State (Obj);
 
@@ -517,7 +608,8 @@ is
 
    function To_String (T : Type_1_Info_Type) return String
    is ("Type_1_Info: PBA: " & Debug.To_String (T.Node.PBA)
-      & " " & To_String (T.State));
+      & " " & To_String (T.State)
+      & " " & Debug.To_String (Debug.Uint64_Type (T.Index)));
 
    function To_String (T : Type_2_Info_Type) return String
    is ("Type_2_Info: PBA: " & Debug.To_String (T.Node.PBA)
@@ -655,13 +747,16 @@ is
       Secured_Gen     :        Generation_Type;
       Rekeying        :        Boolean;
       Previous_Key_ID :        Key_ID_Type;
-      Rekeying_VBA    :        Virtual_Block_Address_Type)
+      Rekeying_VBA    :        Virtual_Block_Address_Type;
+      Node_Index      :        Node_Index_Type)
    is
    begin
       Type_2_Info_Stack.Reset (Stack);
       Type_2_Node_Block_From_Block_Data (Entries, Block_Data);
 
-      for I in Entries'Range loop
+      for I in reverse Type_2_Node_Block_Index_Type (Node_Index) ..
+         Type_2_Node_Block_Index_Type (Node_Index_Type'Last)
+      loop
          declare
             Node : constant Type_2_Node_Type := Entries (I);
          begin
@@ -679,6 +774,8 @@ is
                      Node  => Node,
                      Index => Node_Index_Type (I));
                begin
+                  --  Debug.Print_String ("  Level 0: "
+                  --       & To_String (Info));
                   Type_2_Info_Stack.Push (Stack, Info);
                end;
             end if;
@@ -699,13 +796,40 @@ is
       Stack       : in out Type_1_Info_Stack.Object_Type;
       Entries     :    out Type_1_Node_Block_Type;
       Block_Data  :        Block_Data_Type;
-      Current_Gen :        Generation_Type)
+      Current_Gen :        Generation_Type;
+      Node_Index  :        Node_Index_Type;
+      Highest_Lvl :        Boolean)
    is
    begin
       Type_1_Info_Stack.Reset (Stack);
       Type_1_Node_Block_From_Block_Data (Entries, Block_Data);
 
-      for I in Entries'Range loop
+      if Highest_Lvl and then Node_Index > 0 then
+
+         for I in reverse
+            Type_1_Node_Block_Index_Type (Node_Index_Type'First) ..
+            Type_1_Node_Block_Index_Type (Node_Index - 1)
+         loop
+            if Entries (I).PBA /= 0 then
+               declare
+                  Node : constant Type_1_Node_Type := Entries (I);
+                  Info : constant Type_1_Info_Type := (
+                     State    => Invalid,
+                     Node     => Node,
+                     Index    => Node_Index_Type (I),
+                     Volatile => Node_Volatile (Node, Current_Gen));
+               begin
+                  --  Debug.Print_String ("  Level N: "
+                  --     & To_String (Info));
+                  Type_1_Info_Stack.Push (Stack, Info);
+               end;
+            end if;
+         end loop;
+      end if;
+
+      for I in reverse Type_1_Node_Block_Index_Type (Node_Index) ..
+         Type_1_Node_Block_Index_Type (Node_Index_Type'Last)
+      loop
          if Entries (I).PBA /= 0 then
             declare
                Node : constant Type_1_Node_Type := Entries (I);
@@ -715,6 +839,8 @@ is
                   Index    => Node_Index_Type (I),
                   Volatile => Node_Volatile (Node, Current_Gen));
             begin
+               --  Debug.Print_String ("  Level N: "
+               --     & To_String (Info));
                Type_1_Info_Stack.Push (Stack, Info);
             end;
          end if;
@@ -809,6 +935,8 @@ is
                      raise Program_Error;
                   end if;
 
+                  --  Debug.Print_String ("Invalid: "
+                  --     & Debug.To_String (N.Node.PBA));
                   Obj.Cache_Request := New_Cache_Request (
                      N.Node.PBA, Read, L);
                   Progress := True;
@@ -818,14 +946,20 @@ is
                   Obj.Cache_Request.State := Invalid;
 
                   if L >= 2 then
+                     --  Debug.Print_String ("S Populate Level: "
+                     --     & Debug.To_String (Debug.Uint64_Type (L - 1)));
                      Populate_Lower_N_Stack (Obj.Level_N_Stacks (L - 1),
                         Obj.Level_N_Node, Obj.Cache_Block_Data,
-                        Obj.Current_Gen);
+                        Obj.Current_Gen, Obj.VBA_Indices (L - 1),
+                        L = Obj.Tree_Geom.Max_Level);
                   else
+                     --  Debug.Print_String ("S Populate Level: "
+                     --     & Debug.To_String (Debug.Uint64_Type (L - 1)));
                      Populate_Level_0_Stack (Obj.Level_0_Stack,
                         Obj.Level_0_Node, Obj.Cache_Block_Data,
                         Active_Snaps, Last_Secured_Gen,
-                        Obj.Rekeying, Obj.Previous_Key_ID, Obj.Rekeying_VBA);
+                        Obj.Rekeying, Obj.Previous_Key_ID, Obj.Rekeying_VBA,
+                        Obj.VBA_Indices (L - 1));
                   end if;
                   N.State := Read;
                   Type_1_Info_Stack.Update_Top (Obj.Level_N_Stacks (L), N);
@@ -944,7 +1078,8 @@ is
       Rekeying         :        Boolean;
       Previous_Key_ID  :        Key_ID_Type;
       Current_Key_ID   :        Key_ID_Type;
-      Rekeying_VBA     :        Virtual_Block_Address_Type)
+      Rekeying_VBA     :        Virtual_Block_Address_Type;
+      Node_Index       : in out Node_Index_Type)
    is
       Local_Exchanged : Number_Of_Blocks_Type := 0;
    begin
@@ -956,6 +1091,7 @@ is
          if New_Blocks (I) = 0 then
 
             if not Type_2_Info_Stack.Empty (Stack) then
+               Declare_Info :
                declare
                   Info : constant Type_2_Info_Type :=
                      Type_2_Info_Stack.Peek_Top (Stack);
@@ -1070,7 +1206,9 @@ is
 
                   end case;
 
-               end;
+                  Node_Index := Info.Index;
+
+               end Declare_Info;
                Local_Exchanged := Local_Exchanged + 1;
                Type_2_Info_Stack.Pop (Stack);
                Handled := True;
@@ -1079,6 +1217,15 @@ is
             end if;
          end if;
       end loop Loop_New_Block_Index;
+
+      if Local_Exchanged > 0 then
+         if Node_Index = Node_Index_Type'Last then
+            Node_Index := Node_Index_Type'First;
+         else
+            Node_Index := Node_Index + 1;
+         end if;
+      end if;
+
       Exchanged := Local_Exchanged;
    end Exchange_Type_2_Leafs;
 
@@ -1114,7 +1261,8 @@ is
             Obj.Rekeying,
             Obj.Previous_Key_ID,
             Obj.Current_Key_ID,
-            Obj.Rekeying_VBA);
+            Obj.Rekeying_VBA,
+            Obj.VBA_Indices (0));
 
          if Handled then
             if Exchanged > 0 then
@@ -1123,8 +1271,8 @@ is
                declare
                   L : constant Type_1_Info_Stack_Array_Index_Type :=
                      Obj.Level_N_Stacks'First;
-                     N : Type_1_Info_Type :=
-                        Type_1_Info_Stack.Peek_Top (Obj.Level_N_Stacks (L));
+                  N : Type_1_Info_Type :=
+                     Type_1_Info_Stack.Peek_Top (Obj.Level_N_Stacks (L));
                begin
                   N.State := Complete;
                   Type_1_Info_Stack.Update_Top (Obj.Level_N_Stacks (L), N);
@@ -1136,6 +1284,22 @@ is
       if Obj.Exchanged_Blocks = Obj.Needed_Blocks then
          Exchange_Finished := True;
       end if;
+
+      --  Debug.Print_String ("Dump stacks:");
+      --  Debug.Print_String (" S(0): "
+      --     & Debug.To_String (Debug.Uint64_Type (Obj.VBA_Indices (0))));
+      --  for L in Obj.Level_N_Stacks'Range loop
+      --     if not Type_1_Info_Stack.Empty (Obj.Level_N_Stacks (L)) then
+      --        declare
+      --           N : constant Type_1_Info_Type :=
+      --              Type_1_Info_Stack.Peek_Top (Obj.Level_N_Stacks (L));
+      --        begin
+      --           Debug.Print_String (" S("
+      --              & Debug.To_String (Debug.Uint64_Type (L))
+      --              & ") top: " & To_String (N));
+      --        end;
+      --     end if;
+      --  end loop;
 
       --  handle level 1 - N
       Loop_Level_N_Stacks :
@@ -1152,6 +1316,16 @@ is
                      raise Program_Error;
                   end if;
 
+                  Obj.VBA_Indices (L) := N.Index;
+                  --  Debug.Print_String (" -- S("
+                  --     & Debug.To_String (Debug.Uint64_Type (L))
+                  --     & ") top: " & To_String (
+                  --        Type_1_Info_Stack.Peek_Top (
+                  --           Obj.Level_N_Stacks (L)))
+                  --     & " VBA_Indices: "
+                  --     & Debug.To_String (Debug.Uint64_Type (
+                  --        Obj.VBA_Indices (L))));
+
                   Obj.Cache_Request := New_Cache_Request (
                      N.Node.PBA, Read, L);
                   Progress := True;
@@ -1161,9 +1335,12 @@ is
                   Obj.Cache_Request.State := Invalid;
 
                   if L >= 2 then
+                     --  Debug.Print_String ("U Populate Level: "
+                     --     & Debug.To_String (Debug.Uint64_Type (L - 1)));
                      Populate_Lower_N_Stack (Obj.Level_N_Stacks (L - 1),
                         Obj.Level_N_Nodes (L - 1), Obj.Cache_Block_Data,
-                        Obj.Current_Gen);
+                        Obj.Current_Gen, Obj.VBA_Indices (L - 1),
+                        L = Obj.Tree_Geom.Max_Level);
                      if not Type_1_Info_Stack.Empty (
                         Obj.Level_N_Stacks (L - 1))
                      then
@@ -1172,10 +1349,13 @@ is
                         N.State := Complete;
                      end if;
                   else
+                     --  Debug.Print_String ("U Populate Level: "
+                     --     & Debug.To_String (Debug.Uint64_Type (L - 1)));
                      Populate_Level_0_Stack (Obj.Level_0_Stack,
                         Obj.Level_0_Node, Obj.Cache_Block_Data,
                         Active_Snaps, Last_Secured_Gen,
-                        Obj.Rekeying, Obj.Previous_Key_ID, Obj.Rekeying_VBA);
+                        Obj.Rekeying, Obj.Previous_Key_ID, Obj.Rekeying_VBA,
+                        Obj.VBA_Indices (L - 1));
                      if not Type_2_Info_Stack.Empty (Obj.Level_0_Stack) then
                         N.State := Write;
                      else
@@ -1245,6 +1425,15 @@ is
                when Complete =>
 
                   Obj.Cache_Request.State := Invalid;
+
+                  --  Debug.Print_String (" S("
+                  --     & Debug.To_String (Debug.Uint64_Type (L))
+                  --     & ") top: " & To_String (
+                  --        Type_1_Info_Stack.Peek_Top (
+                  --           Obj.Level_N_Stacks (L)))
+                  --     & " VBA_Indices: "
+                  --     & Debug.To_String (Debug.Uint64_Type (
+                  --        Obj.VBA_Indices (L))));
 
                   Type_1_Info_Stack.Pop (Obj.Level_N_Stacks (L));
 
