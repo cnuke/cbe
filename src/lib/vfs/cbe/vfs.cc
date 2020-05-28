@@ -1442,7 +1442,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				if (state == State::ERROR_EOF) {
 					out_count = 0;
 					_w.ack_frontend_request(*this);
-					return WRITE_OK;
+					return WRITE_ERR_IO;
 				}
 
 				if (state == State::ERROR) {
