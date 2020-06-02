@@ -1655,7 +1655,7 @@ class Vfs_cbe::Extend_file_system : public Vfs::Single_file_system
 					" last-result:", last_result ? success ?
 					                 "success" : "failed" : "none",
 					"\n" };
-				strncpy(dst, result.string(), count);
+				copy_cstring(dst, result.string(), count);
 				size_t const length_without_nul = result.length() - 1;
 				out_count = count > length_without_nul - 1 ?
 				            length_without_nul : count;
@@ -1790,7 +1790,7 @@ class Vfs_cbe::Rekey_file_system : public Vfs::Single_file_system
 					" last-result:", last_result ? success ?
 					                 "success" : "failed" : "none",
 					"\n" };
-				strncpy(dst, result.string(), count);
+				copy_cstring(dst, result.string(), count);
 				size_t const length_without_nul = result.length() - 1;
 				out_count = count > length_without_nul - 1 ?
 				            length_without_nul : count;
