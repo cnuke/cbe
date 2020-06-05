@@ -110,17 +110,20 @@ is
       Keys     :        Keys_Type;
       Progress : in out Boolean)
    is
+      pragma Unreferenced (Keys);
    begin
 
       case Job.State is
       when Submitted =>
 
-         Aes_Cbc_4k.Decrypt (
-            Keys (Key_Idx_For_Job (Job, Keys)).Data,
-            Aes_Cbc_4k.Block_Number_Type (
-               CBE.Request.Block_Number (Job.Request)),
-            Job.Cipher_Data,
-            Job.Plain_Data);
+         --  Aes_Cbc_4k.Decrypt (
+         --     Keys (Key_Idx_For_Job (Job, Keys)).Data,
+         --     Aes_Cbc_4k.Block_Number_Type (
+         --        CBE.Request.Block_Number (Job.Request)),
+         --     Job.Cipher_Data,
+         --     Job.Plain_Data);
+
+         Job.Plain_Data := Plain_Data_Type (Job.Cipher_Data);
 
          CBE.Request.Success (Job.Request, True);
          Job.State := Completed;
@@ -142,17 +145,19 @@ is
       Keys     :        Keys_Type;
       Progress : in out Boolean)
    is
+      pragma Unreferenced (Keys);
    begin
 
       case Job.State is
       when Submitted =>
 
-         Aes_Cbc_4k.Encrypt (
-            Keys (Key_Idx_For_Job (Job, Keys)).Data,
-            Aes_Cbc_4k.Block_Number_Type (
-               CBE.Request.Block_Number (Job.Request)),
-            Job.Plain_Data,
-            Job.Cipher_Data);
+         --  Aes_Cbc_4k.Encrypt (
+         --     Keys (Key_Idx_For_Job (Job, Keys)).Data,
+         --     Aes_Cbc_4k.Block_Number_Type (
+         --        CBE.Request.Block_Number (Job.Request)),
+         --     Job.Plain_Data,
+         --     Job.Cipher_Data);
+         Job.Cipher_Data := Cipher_Data_Type (Job.Plain_Data);
 
          Job.State := Completed;
          CBE.Request.Success (Job.Request, True);
