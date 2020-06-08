@@ -404,6 +404,9 @@ is
 
       when Sync =>
 
+         Debug.Print_String ("Submit_Client_Request: "
+            & Request.To_String (Req));
+
          Pool.Submit_Request (Obj.Request_Pool_Obj, Req, ID);
 
       when
@@ -1179,6 +1182,10 @@ is
 
                      Obj.Superblock.Last_Secured_Generation := Obj.Cur_Gen;
 
+                     Debug.Print_String (
+                        "Loop_Free_Tree_Completed_Prims: SS request: "
+                        & Primitive.To_String (Prim));
+
                      Sync_Superblock.Submit_Request (
                         Obj.Sync_SB_Obj, 1, Obj.Cur_SB, Obj.Cur_Gen);
 
@@ -1915,6 +1922,10 @@ is
                Obj.Cur_Gen);
 
             Obj.Superblock.Last_Secured_Generation := Obj.Cur_Gen;
+
+            Debug.Print_String ("Loop_Pool_Generated_Sync_Prims: SS request: "
+               & Primitive.To_String (Prim));
+
             Sync_Superblock.Submit_Request (
                Obj.Sync_SB_Obj,
                Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
@@ -1953,6 +1964,10 @@ is
             Obj.Superblock.Last_Secured_Generation := Obj.Cur_Gen;
             Obj.Superblock.Snapshots (Obj.Superblock.Curr_Snap).Keep := True;
 
+            Debug.Print_String (
+               "Loop_Pool_Generated_Create_Snap_Prims: SS request: "
+               & Primitive.To_String (Prim));
+
             Sync_Superblock.Submit_Request (
                Obj.Sync_SB_Obj,
                Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
@@ -1985,6 +2000,11 @@ is
 
             Obj.Superblock.Snapshots (Obj.Discard_Snap_Slot).Keep := False;
             Obj.Superblock.Snapshots (Obj.Discard_Snap_Slot).Valid := False;
+
+            Debug.Print_String (
+               "Loop_Pool_Generated_Discard_Snap_Prims: SS request: "
+               & Primitive.To_String (Prim));
+
             Sync_Superblock.Submit_Request (
                Obj.Sync_SB_Obj,
                Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
@@ -3296,6 +3316,9 @@ is
                raise Program_Error;
             end if;
 
+            Debug.Print_String ("Loop_Sync_SB_Completed_Prims: "
+               & Primitive.To_String (Prim));
+
             Obj.Cur_SB := Advance_Superblocks_Index (Obj.Cur_SB);
 
             Obj.Superblock.Snapshots (Obj.Superblock.Curr_Snap).Gen :=
@@ -3616,10 +3639,18 @@ is
                      Obj.Write_Back_Obj, Prim);
 
                elsif Primitive.Has_Tag_Sync_SB_Write_SB (Prim) then
+                  Debug.Print_String (
+                     "Sync_Superblock.Mark_Generated_Prim_Complete: "
+                     & Primitive.To_String (Prim));
+
                   Sync_Superblock.Mark_Generated_Primitive_Complete (
                      Obj.Sync_SB_Obj, Prim);
 
                elsif Primitive.Has_Tag_Sync_SB_Sync (Prim) then
+                  Debug.Print_String (
+                     "Sync_Superblock.Mark_Generated_Prim_Complete: "
+                     & Primitive.To_String (Prim));
+
                   Sync_Superblock.Mark_Generated_Primitive_Complete (
                      Obj.Sync_SB_Obj, Prim);
 
@@ -3673,23 +3704,141 @@ is
       Progress : Boolean := False;
    begin
 
-      Execute_SCD (Obj, Progress);
-      Execute_Request_Pool (Obj, Progress);
-      Execute_SB_Ctrl (Obj, IO_Buf, Progress);
-      Execute_TA (Obj, Progress);
-      Execute_VBD_Rkg (
-         Obj, IO_Buf, Crypto_Plain_Buf, Crypto_Cipher_Buf, Progress);
-      Execute_FT_Rszg (Obj, Progress);
-      Execute_VBD (Obj, Crypto_Plain_Buf, Progress);
-      Execute_Cache  (Obj, IO_Buf, Progress);
-      Execute_IO     (Obj, IO_Buf, Crypto_Cipher_Buf, Progress);
-      Execute_Crypto (Obj, Crypto_Plain_Buf, Crypto_Cipher_Buf, Progress);
-      Execute_Meta_Tree (Obj, Progress);
-      Execute_Writeback (Obj, IO_Buf, Crypto_Plain_Buf, Progress);
-      Execute_Sync_Superblock (Obj, IO_Buf, Progress);
-      Execute_Free_Tree (Obj, Progress);
+      Debug.Print_String ("Execute");
+
+      --  Execute_SCD (Obj, Progress);
+      --  Execute_Request_Pool (Obj, Progress);
+      --  Execute_SB_Ctrl (Obj, IO_Buf, Progress);
+      --  Execute_TA (Obj, Progress);
+      --  Execute_VBD_Rkg (
+      --     Obj, IO_Buf, Crypto_Plain_Buf, Crypto_Cipher_Buf, Progress);
+      --  Execute_FT_Rszg (Obj, Progress);
+      --  Execute_VBD (Obj, Crypto_Plain_Buf, Progress);
+      --  Execute_Cache  (Obj, IO_Buf, Progress);
+      --  Execute_IO     (Obj, IO_Buf, Crypto_Cipher_Buf, Progress);
+      --  Execute_Crypto (Obj, Crypto_Plain_Buf, Crypto_Cipher_Buf, Progress);
+      --  Execute_Meta_Tree (Obj, Progress);
+      --  Execute_Writeback (Obj, IO_Buf, Crypto_Plain_Buf, Progress);
+      --  Execute_Sync_Superblock (Obj, IO_Buf, Progress);
+      --  Execute_Free_Tree (Obj, Progress);
+
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_SCD (Obj, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_SCD: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_Request_Pool (Obj, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_Request_Pool: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_SB_Ctrl (Obj, IO_Buf, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_SB_Ctrl: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_TA (Obj, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_TA: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_VBD_Rkg (
+            Obj, IO_Buf, Crypto_Plain_Buf, Crypto_Cipher_Buf, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_VBD_Rkg: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_FT_Rszg (Obj, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_FT_Rszg: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_VBD (Obj, Crypto_Plain_Buf, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_VBD: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_Cache  (Obj, IO_Buf, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_Cache: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_IO     (Obj, IO_Buf, Crypto_Cipher_Buf, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_IO: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_Crypto (Obj, Crypto_Plain_Buf, Crypto_Cipher_Buf,
+            Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_Crypto: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_Meta_Tree (Obj, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_Meta_Tree: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_Writeback (Obj, IO_Buf, Crypto_Plain_Buf, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_Writeback: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_Sync_Superblock (Obj, IO_Buf, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_SB_Ctrl: "
+            & Debug.To_String (Local_Progress));
+      end;
+      declare
+         Local_Progress : Boolean := False;
+      begin
+         Execute_Free_Tree (Obj, Local_Progress);
+         Progress := Progress or else Local_Progress;
+         Debug.Print_String ("Execute_Free_Tree: "
+            & Debug.To_String (Local_Progress));
+      end;
 
       Obj.Execute_Progress := Progress;
+      Debug.Print_String ("Execute: Progress: " & Debug.To_String (Progress));
    end Execute;
 
    procedure Start_Waiting_For_Front_End (

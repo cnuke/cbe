@@ -192,6 +192,8 @@ is
       when Write_SB_In_Progress =>
          Obj.State := Write_SB_Complete;
       when Sync_In_Progress =>
+         Debug.Print_String ("Sync_In_Progress => Sync_Complete");
+
          Obj.State := Sync_Complete;
       when others =>
          raise Program_Error;

@@ -875,6 +875,9 @@ is
          then
             Obj.Items (Idx).State := Pending;
          else
+            Debug.Print_String ("Pool.Mark_Generated_Primitive_Complete: "
+               & Request.To_String (Obj.Items (Idx).Req));
+
             Obj.Items (Idx).State := Complete;
             Index_Queue.Dequeue (Obj.Indices, Idx);
          end if;
