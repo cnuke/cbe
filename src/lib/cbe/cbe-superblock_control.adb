@@ -198,6 +198,13 @@ is
                Ctrl.Jobs (Idx).Submitted_Prim := Prim;
                return;
 
+            when Primitive.Tag_Pool_SB_Ctrl_Deinitialize =>
+
+               Ctrl.Jobs (Idx).Operation := Deinitialize;
+               Ctrl.Jobs (Idx).State := Submitted;
+               Ctrl.Jobs (Idx).Submitted_Prim := Prim;
+               return;
+
             when others =>
 
                raise Program_Error;
@@ -225,6 +232,13 @@ is
             case Primitive.Tag (Prim) is
             when Primitive.Tag_Pool_SB_Ctrl_Decrypt_Keys =>
 
+               Ctrl.Jobs (Idx).Operation := Decrypt_Keys;
+               Ctrl.Jobs (Idx).State := Submitted;
+               Ctrl.Jobs (Idx).Submitted_Prim := Prim;
+               Ctrl.Jobs (Idx).Curr_Key_Ciphertext := Curr_Key;
+               Ctrl.Jobs (Idx).Prev_Key_Ciphertext := Prev_Key;
+               Ctrl.Jobs (Idx).Curr_Key_Plaintext.ID :=
+                  Ctrl.Jobs (Idx).Curr_Key_Ciphertext.ID;
                Ctrl.Jobs (Idx).Operation := Decrypt_Keys;
                Ctrl.Jobs (Idx).State := Submitted;
                Ctrl.Jobs (Idx).Submitted_Prim := Prim;
@@ -1049,6 +1063,75 @@ is
    end Execute_FT_Extension_Step;
 
    --
+   --  Execute_Deinitialize
+   --
+   procedure Execute_Deinitialize (
+      Job           : in out Job_Type;
+      Job_Idx       :        Jobs_Index_Type;
+      SB            :        Superblock_Type;
+      Progress      : in out Boolean)
+   is
+   begin
+      case Job.State is
+      when Submitted =>
+
+         Job.Curr_Key_Plaintext.ID := SB.Current_Key.ID;
+         Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+            Op     => Primitive_Operation_Type'First,
+            Succ   => False,
+            Tg     => Primitive.Tag_SB_Ctrl_Crypto_Remove_Key,
+            Blk_Nr => Block_Number_Type'First,
+            Idx    => Primitive.Index_Type (Job_Idx));
+
+         Job.State := Remove_Current_Key_At_Crypto_Module_Pending;
+         Progress := True;
+
+      when Remove_Current_Key_At_Crypto_Module_Completed =>
+
+         if not Primitive.Success (Job.Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         case SB.State is
+         when Rekeying =>
+
+            Job.Prev_Key_Plaintext.ID := SB.Previous_Key.ID;
+            Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+               Op     => Primitive_Operation_Type'First,
+               Succ   => False,
+               Tg     => Primitive.Tag_SB_Ctrl_Crypto_Remove_Key,
+               Blk_Nr => Block_Number_Type'First,
+               Idx    => Primitive.Index_Type (Job_Idx));
+
+            Job.State := Remove_Previous_Key_At_Crypto_Module_Pending;
+            Progress := True;
+
+         when Normal | Extending_VBD | Extending_FT =>
+
+            Primitive.Success (Job.Submitted_Prim, True);
+            Job.State := Completed;
+            Progress := True;
+
+         end case;
+
+      when Remove_Previous_Key_At_Crypto_Module_Completed =>
+
+         if not Primitive.Success (Job.Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         Primitive.Success (Job.Submitted_Prim, True);
+         Job.State := Completed;
+         Progress := True;
+
+      when others =>
+
+         null;
+
+      end case;
+   end Execute_Deinitialize;
+
+   --
    --  Execute_Decrypt_Keys
    --
    procedure Execute_Decrypt_Keys (
@@ -1606,6 +1689,10 @@ is
 
             Execute_Decrypt_Keys (Ctrl.Jobs (Idx), Idx, Progress);
 
+         when Deinitialize =>
+
+            Execute_Deinitialize (Ctrl.Jobs (Idx), Idx, SB, Progress);
+
          when Invalid =>
 
             null;
@@ -1668,7 +1755,8 @@ is
                Add_Key_At_Crypto_Module_Pending |
                Add_Current_Key_At_Crypto_Module_Pending |
                Add_Previous_Key_At_Crypto_Module_Pending |
-               Remove_Previous_Key_At_Crypto_Module_Pending
+               Remove_Previous_Key_At_Crypto_Module_Pending |
+               Remove_Current_Key_At_Crypto_Module_Pending
             =>
 
                return Ctrl.Jobs (Idx).Generated_Prim;
@@ -2360,6 +2448,13 @@ is
             end if;
             raise Program_Error;
 
+         when Remove_Current_Key_At_Crypto_Module_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
+               return Ctrl.Jobs (Idx).Curr_Key_Plaintext.ID;
+            end if;
+            raise Program_Error;
+
          when others =>
 
             raise Program_Error;
@@ -2584,6 +2679,15 @@ is
             if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
                Ctrl.Jobs (Idx).State :=
                   Remove_Previous_Key_At_Crypto_Module_In_Progress;
+               return;
+            end if;
+            raise Program_Error;
+
+         when Remove_Current_Key_At_Crypto_Module_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
+               Ctrl.Jobs (Idx).State :=
+                  Remove_Current_Key_At_Crypto_Module_In_Progress;
                return;
             end if;
             raise Program_Error;
@@ -2989,6 +3093,18 @@ is
 
                Ctrl.Jobs (Idx).State :=
                   Remove_Previous_Key_At_Crypto_Module_Completed;
+               Ctrl.Jobs (Idx).Generated_Prim := Prim;
+               return;
+
+            end if;
+            raise Program_Error;
+
+         when Remove_Current_Key_At_Crypto_Module_In_Progress =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
+
+               Ctrl.Jobs (Idx).State :=
+                  Remove_Current_Key_At_Crypto_Module_Completed;
                Ctrl.Jobs (Idx).Generated_Prim := Prim;
                return;
 
