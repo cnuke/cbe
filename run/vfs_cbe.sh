@@ -160,10 +160,22 @@ wait_for_ft_extension() {
 }
 
 main() {
+	#ls -l /dev/foo/bar
+	#exit 1
+
 	local cbe_dir="/dev/cbe"
 	local data_file="$cbe_dir/current/data"
 
-	ls -l $cbe_dir
+	echo true > $cbe_dir/control/create_snapshot
+	sleep 3
+
+	#ls -l $cbe_dir
+	#ls -l $cbe_dir/snapshots
+	ls -l $cbe_dir/current
+	echo FOOO
+	ls -l $cbe_dir/snapshots/1
+	echo BAR
+	return
 
 	for i in $(seq 3); do
 
