@@ -447,7 +447,7 @@ class Vfs_cbe::Wrapper
 			_enqueued_vfs_handle = nullptr;
 		}
 
-		bool submit_frontend_request(Vfs_handle              &handle,
+		bool submit_frontend_request(file_offset        const offset,
 		                             char                    *data,
 		                             file_size                count,
 		                             Cbe::Request::Operation  op,
@@ -477,7 +477,6 @@ class Vfs_cbe::Wrapper
 				return true;
 			}
 
-			file_size const offset = handle.seek();
 			bool unaligned_request = false;
 
 			/* unaligned request if any condition is true */
@@ -543,8 +542,8 @@ class Vfs_cbe::Wrapper
 
 			_frontend_request.snap_id = snap_id;
 			return true;
-		}
-
+		}	
+         	
 		bool _handle_cbe_backend(Cbe::Library &cbe, Cbe::Io_buffer &io_data)
 		{
 			Cbe::Io_buffer::Index data_index { 0 };
@@ -1129,21 +1128,70 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 			Wrapper &_w;
 			uint32_t _snap_id { 0 };
 
-			Vfs_handle(Directory_service &ds,
-			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
-			           Wrapper       &w,
-			           uint32_t snap_id)
-			:
-				Single_vfs_handle(ds, fs, alloc, 0),
-				_w(w), _snap_id(snap_id)
-			{ }
-
-			Read_result read(char *dst, file_size count,
-			                 file_size &out_count) override
+			struct Helper
 			{
-				Genode::Mutex::Guard guard { _w.frontend_mtx() };
+				bool        orig_read;
+				file_offset orig_offset;
+				file_size   orig_count;
 
+				file_offset offset;
+				file_size   count;
+
+				file_size   out_count;
+
+				bool valid;
+			};
+
+			char _helper_data[Cbe::BLOCK_SIZE] { };
+
+			Helper _helper {
+				.orig_read   = false,
+				.orig_offset = 0,
+				.orig_count  = 0,
+				.offset      = 0,
+				.count       = 0,
+				.out_count   = 0,
+				.valid       = false,
+			};
+
+			bool _request_aligned(file_offset const offset,
+			                      file_size   const count)
+			{
+				bool unaligned_request = false;
+
+				/* start is not aligned */
+				unaligned_request |= (offset % Cbe::BLOCK_SIZE) != 0;
+				/* end does not cover whole block */
+				unaligned_request	 |= (count < Cbe::BLOCK_SIZE);
+
+				return !unaligned_request;
+			}
+
+			Read_result _read_unaligned(file_offset const offset,
+			                            char *dst, file_size count,
+			                            file_size &out_count, bool read)
+			{
+				if (!_helper.valid) {
+					_helper = Helper {
+						.orig_read   = read,
+						.orig_offset = offset,
+						.orig_count  = count,
+						.offset      = offset / Cbe::BLOCK_SIZE,
+						.count       = Cbe::BLOCK_SIZE,
+						.valid       = true,
+					};
+				}
+
+				Read_result const res =
+					_read_aligned(_helper.offset, _helper_data,
+					              _helper.count, _helper.out_count);
+				return res;
+			}
+
+			Read_result _read_aligned(file_offset const offset,
+			                          char *dst, file_size count,
+			                          file_size &out_count)
+			{
 				using State = Wrapper::Frontend_request::State;
 
 				State state = _w.frontend_request().state;
@@ -1155,7 +1203,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 					using Op = Cbe::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this, dst, count,
+						_w.submit_frontend_request(offset, dst, count,
 						                           Op::READ, _snap_id);
 					if (!accepted) { return READ_ERR_IO; }
 				}
@@ -1190,11 +1238,47 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				return READ_ERR_IO;
 			}
 
-			Write_result write(char const *src, file_size count,
-			                   file_size &out_count) override
+			Read_result _read(file_offset const offset,
+			                  char *dst, file_size count,
+			                  file_size &out_count)
 			{
-				Genode::Mutex::Guard guard { _w.frontend_mtx() };
+				bool const aligned = _request_aligned(offset, count);
+				if (aligned) {
+					return _read_aligned(offset, dst, count, out_count);
+				}
 
+				Read_result const res =
+					_read_unaligned(offset, dst, count, out_count, true);
+				if (res != READ_OK) {
+					return res;
+				}
+
+				size_t const copy_len = Genode::min(_helper.orig_count,
+				                                    _helper.out_count);
+
+			}
+
+			Write_result _write(file_offset const offset,
+			                    char const *src, file_size count,
+			                    file_size &out_count)
+			{
+				bool const aligned = _request_aligned(offset, count);
+				if (aligned) {
+					return _write_aligned(offset, dst, count, out_count);
+				}
+
+				Read_result const res =
+					_read_unaligned(offset, dst, count, out_count, false);
+				if (res != READ_OK) {
+					out_count = 0;
+					return WRITE_OK;
+				}
+			}
+
+			Write_result _write_aligned(file_offset const offset,
+			                            char const *src, file_size count,
+			                            file_size &out_count)
+			{
 				using State = Wrapper::Frontend_request::State;
 
 				State state = _w.frontend_request().state;
@@ -1206,7 +1290,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 					using Op = Cbe::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this, const_cast<char*>(src),
+						_w.submit_frontend_request(seek(), const_cast<char*>(src),
 						                           count, Op::WRITE, _snap_id);
 					if (!accepted) { return WRITE_ERR_IO; }
 				}
@@ -1241,10 +1325,8 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				return WRITE_ERR_IO;
 			}
 
-			Sync_result sync() override
+			Sync_result _sync(file_offset const offset)
 			{
-				Genode::Mutex::Guard guard { _w.frontend_mtx() };
-
 				using State = Wrapper::Frontend_request::State;
 
 				State state = _w.frontend_request().state;
@@ -1256,7 +1338,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 					using Op = Cbe::Request::Operation;
 
 					bool const accepted =
-						_w.submit_frontend_request(*this, nullptr, 0, Op::SYNC, 0);
+						_w.submit_frontend_request(offset, nullptr, 0, Op::SYNC, 0);
 					if (!accepted) { return SYNC_ERR_INVALID; }
 				}
 
@@ -1280,6 +1362,39 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 				}
 
 				return SYNC_ERR_INVALID;
+			}
+
+			Vfs_handle(Directory_service &ds,
+			           File_io_service   &fs,
+			           Genode::Allocator &alloc,
+			           Wrapper       &w,
+			           uint32_t snap_id)
+			:
+				Single_vfs_handle(ds, fs, alloc, 0),
+				_w(w), _snap_id(snap_id)
+			{ }
+
+			Read_result read(char *dst, file_size count,
+			                 file_size &out_count) override
+			{
+				Genode::Mutex::Guard guard { _w.frontend_mtx() };
+
+				return _read(seek(), dst, count, out_count);
+			}
+
+			Write_result write(char const *src, file_size count,
+			                   file_size &out_count) override
+			{
+				Genode::Mutex::Guard guard { _w.frontend_mtx() };
+
+				return _write(seek(), src, count, out_count);
+			}
+
+			Sync_result sync() override
+			{
+				Genode::Mutex::Guard guard { _w.frontend_mtx() };
+
+				return _sync(seek());
 			}
 
 			bool read_ready() override { return true; }
