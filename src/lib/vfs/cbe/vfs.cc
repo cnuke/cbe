@@ -1109,9 +1109,9 @@ class Vfs_cbe::Wrapper
 			return true;
 		}
 
-		Genode::Lock _frontend_lock { };
+		Genode::Mutex _frontend_mtx { };
 
-		Genode::Lock &frontend_lock() { return _frontend_lock; }
+		Genode::Mutex &frontend_mtx() { return _frontend_mtx; }
 };
 
 
@@ -1142,7 +1142,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 			Read_result read(char *dst, file_size count,
 			                 file_size &out_count) override
 			{
-				Genode::Lock_guard guard { _w.frontend_lock() };
+				Genode::Mutex::Guard guard { _w.frontend_mtx() };
 
 				using State = Wrapper::Frontend_request::State;
 
@@ -1193,7 +1193,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 			Write_result write(char const *src, file_size count,
 			                   file_size &out_count) override
 			{
-				Genode::Lock_guard guard { _w.frontend_lock() };
+				Genode::Mutex::Guard guard { _w.frontend_mtx() };
 
 				using State = Wrapper::Frontend_request::State;
 
@@ -1243,7 +1243,7 @@ class Vfs_cbe::Data_file_system : public Single_file_system
 
 			Sync_result sync() override
 			{
-				Genode::Lock_guard guard { _w.frontend_lock() };
+				Genode::Mutex::Guard guard { _w.frontend_mtx() };
 
 				using State = Wrapper::Frontend_request::State;
 
