@@ -2869,6 +2869,7 @@ is
                      Obj.Superblock.Snapshots (Obj.Superblock.Curr_Snap);
 
                   Obj.Superblock.Snapshots (Snap_Idx).Gen := Obj.Cur_Gen;
+                  Obj.Superblock.Snapshots (Snap_Idx).Keep := False;
                   Obj.Superblock.Curr_Snap := Snap_Idx;
                end;
             end if;
@@ -3166,14 +3167,14 @@ is
 
             if not Obj.Write_Stalled then
 
-               Request_Pool.Mark_Generated_Primitive_Complete (
-                  Obj.Request_Pool_Obj,
-                  Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
-                  Primitive.Success (Prim));
+               if not Obj.Creating_Quarantine_Snapshot then
 
-               pragma Debug (Debug.Print_String (
-                  "========> Request_Pool.Mark_Completed_Primitive: "
-                  & Primitive.To_String (Prim)));
+                  Request_Pool.Mark_Generated_Primitive_Complete (
+                     Obj.Request_Pool_Obj,
+                     Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
+                     Primitive.Success (Prim));
+
+               end if;
 
                Declare_Pool_Index :
                declare
@@ -3186,6 +3187,15 @@ is
                         Obj.Request_Pool_Obj, Pool_Idx);
                begin
                   if Obj.Creating_Quarantine_Snapshot then
+
+                     Request_Pool.
+                        Mark_Generated_Primitive_Complete_Generation (
+                           Obj.Request_Pool_Obj,
+                           Pool_Idx_Slot_Content (
+                              Primitive.Pool_Idx_Slot (Prim)),
+                           Primitive.Success (Prim),
+                           Obj.Superblock.Last_Secured_Generation);
+
                      if Request.Operation (Req) = Create_Snapshot then
                         Obj.Snap_Gen :=
                            Obj.Superblock.Last_Secured_Generation;
