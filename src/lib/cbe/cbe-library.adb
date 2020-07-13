@@ -415,14 +415,15 @@ is
 
    end Client_Data_Required;
 
+   --
+   --  Supply_Client_Data
+   --
    procedure Supply_Client_Data (
       Obj      : in out Object_Type;
-      Now      :        Timestamp_Type;
       Req      :        Request.Object_Type;
       Data     :        Block_Data_Type;
       Progress :    out Boolean)
    is
-      pragma Unreferenced (Now);
    begin
       case Obj.SCD_State is
       when Inactive =>
@@ -3139,10 +3140,8 @@ is
       Obj               : in out Object_Type;
       IO_Buf            : in out Block_IO.Data_Type;
       Crypto_Plain_Buf  : in out Crypto.Plain_Buffer_Type;
-      Crypto_Cipher_Buf : in out Crypto.Cipher_Buffer_Type;
-      Now               :        Timestamp_Type)
+      Crypto_Cipher_Buf : in out Crypto.Cipher_Buffer_Type)
    is
-      pragma Unreferenced (Now);
       Progress : Boolean := False;
    begin
 
