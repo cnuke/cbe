@@ -26,6 +26,12 @@ is
    return Object_Type;
 
    --
+   --  Initialize_Request_Finished
+   --
+   function Initialize_Request_Finished (Obj : Object_Type)
+   return Boolean;
+
+   --
    --  Request_Acceptable
    --
    function Request_Acceptable (Obj : Object_Type)
@@ -208,6 +214,7 @@ private
    type Object_Type is record
       Jobs    : Jobs_Type;
       Indices : Index_Queue.Queue_Type;
+      Initialize_Finished : Boolean;
    end record;
 
    --
