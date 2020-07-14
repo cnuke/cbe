@@ -45,10 +45,6 @@ is
       ID    : CXX_Key_ID_Type;
    end record;
 
-   type CXX_Superblocks_Index_Type is record
-      Value : CXX_UInt64_Type;
-   end record;
-
    type CXX_IO_Buffer_Index_Type is record
       Value : CXX_UInt32_Type;
    end record;
