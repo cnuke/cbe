@@ -34,6 +34,14 @@ is
       Convention    => C,
       External_Name => "_ZN3Cbe7LibraryC2Ev";
 
+   procedure Current_Info (
+      Obj  :     Library.Object_Type;
+      Info : out CXX_Info_Type)
+   with
+      Export,
+      Convention    => C,
+      External_Name => "_ZNK3Cbe7Library13_current_infoERNS_4InfoE";
+
    procedure Active_Snapshot_IDs (
       Obj :     Library.Object_Type;
       IDs : out Active_Snapshot_IDs_Type)
