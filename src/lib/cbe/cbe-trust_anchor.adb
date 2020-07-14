@@ -269,6 +269,129 @@ is
    end Drop_Completed_Primitive;
 
    --
+   --  Peek generated request
+   --
+   procedure Peek_Generated_Request (
+      Anchor :     Anchor_Type;
+      Req    : out TA_Request.Object_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      null;
+   end Peek_Generated_Request;
+
+   --
+   --  Drop generated request
+   --
+   procedure Drop_Generated_Request (
+      Anchor : in out Anchor_Type;
+      Req    :        TA_Request.Object_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      null;
+   end Drop_Generated_Request;
+
+   --
+   --  Peek generated superblock hash
+   --
+   procedure Peek_Generated_SB_Hash (
+      Anchor :     Anchor_Type;
+      Req    :     TA_Request.Object_Type;
+      Hash   : out Hash_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      Hash := (others => Byte_Type'First);
+   end Peek_Generated_SB_Hash;
+
+   --
+   --  Peek generated key value ciphertext
+   --
+   procedure Peek_Generated_Key_Value_Ciphertext (
+      Anchor    :     Anchor_Type;
+      Req       :     TA_Request.Object_Type;
+      Key_Value : out Key_Value_Ciphertext_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      Key_Value := (others => Byte_Type'First);
+   end Peek_Generated_Key_Value_Ciphertext;
+
+   --
+   --  Peek generated key value plaintext
+   --
+   procedure Peek_Generated_Key_Value_Plaintext (
+      Anchor    :     Anchor_Type;
+      Req       :     TA_Request.Object_Type;
+      Key_Value : out Key_Value_Plaintext_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      Key_Value := (others => Byte_Type'First);
+   end Peek_Generated_Key_Value_Plaintext;
+
+
+   --
+   --  Mark generated TA create key request complete
+   --
+   procedure Mark_Generated_Create_Key_Request_Complete (
+      Anchor    : Anchor_Type;
+      Req       : TA_Request.Object_Type;
+      Key_Value : Key_Value_Plaintext_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      Key_Value := (others => Byte_Type'First);
+   end Mark_Generated_Create_Key_Request_Complete;
+
+   --
+   --  Mark generated TA secure superblock request complete
+   --
+   procedure Mark_Generated_Secure_SB_Request_Complete (
+      Anchor : Anchor_Type;
+      Req    : TA_Request.Object_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+   end Mark_Generated_Secure_SB_Request_Complete;
+
+   --
+   --  Mark generated TA decrypt key request complete
+   --
+   procedure Mark_Generated_Decrypt_Key_Request_Complete (
+      Anchor    : Anchor_Type;
+      Req       : TA_Request.Object_Type;
+      Key_Value : Key_Value_Plaintext_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      Key_Value := (others => Byte_Type'First);
+   end Mark_Generated_Decrypt_Key_Request_Complete;
+
+   --
+   --  Mark generated TA encrypt key request complete
+   --
+   procedure Mark_Generated_Encrypt_Key_Request_Complete (
+      Anchor    : Anchor_Type;
+      Req       : TA_Request.Object_Type;
+      Key_Value : Key_Value_Ciphertext_Type)
+   is
+      pragma Unreferenced (Anchor);
+      pragma Unreferenced (Req);
+   begin
+      Key_Value := (others => Byte_Type'First);
+   end Mark_Generated_Encrypt_Key_Request_Complete;
+
+   --
    --  Execute_Create_Key
    --
    procedure Execute_Create_Key (
