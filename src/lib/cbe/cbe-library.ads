@@ -47,6 +47,15 @@ is
       List : out Active_Snapshot_IDs_Type);
 
    --
+   --  Get current CBE info
+   --
+   --  \param info  refenence to info
+   --
+   procedure Current_Info (
+      Obj  :     Object_Type;
+      Info : out Info_Type);
+
+   --
    --  Check if the CBE can accept a new requeust
    --
    --  \return true if a request can be accepted, otherwise false
