@@ -1427,6 +1427,8 @@ is
          SB.State := Normal;
          Job.Request_Finished := True;
 
+         SB.Snapshots (SB.Curr_Snap).Gen := Curr_Gen;
+
          Init_SB_Ciphertext_Without_Key_Values (SB, Job.SB_Ciphertext);
          Job.Key_Plaintext := SB.Current_Key;
          Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
