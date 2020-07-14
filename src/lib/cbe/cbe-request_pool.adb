@@ -15,6 +15,12 @@ package body CBE.Request_Pool
 with SPARK_Mode
 is
    --
+   --  Initialize_Request_Finished
+   --
+   function Initialize_Request_Finished (Obj : Object_Type)
+   return Boolean is (Obj.Initialize_Finished);
+
+   --
    --  Request_Acceptable
    --
    function Request_Acceptable (Obj : Object_Type)
@@ -1056,6 +1062,8 @@ is
             Obj.Jobs (Idx).State := Initialize_SB_Ctrl_Complete;
             Obj.Jobs (Idx).SB_State := SB_State;
 
+            Obj.Initialize_Finished := True;
+
          when others =>
 
             raise Program_Error;
@@ -1385,7 +1393,8 @@ is
 
       Obj := (
          Jobs   => (others => Job_Invalid),
-         Indices => Index_Queue.Empty_Queue);
+         Indices => Index_Queue.Empty_Queue,
+         Initialize_Finished => False);
 
       Obj.Jobs (Idx).State := Submitted;
       Obj.Jobs (Idx).Req   :=
