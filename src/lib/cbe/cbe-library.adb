@@ -117,6 +117,31 @@ is
 
    end Discard_Disposable_Snapshots;
 
+   procedure Current_Info (
+      Obj  :     Object_Type;
+      Info : out Info_Type)
+   is
+      Initialized : Boolean;
+   begin
+      Initialized :=
+         Request_Pool.Initialize_Request_Finished (Obj.Request_Pool_Obj);
+
+      if Initialized then
+         Info := (
+            Initialized   => True,
+            Rekeying      => False,
+            Extending_FT  => False,
+            Extending_VBD => False);
+      else
+         Info := (
+            Initialized   => False,
+            Rekeying      => False,
+            Extending_FT  => False,
+            Extending_VBD => False);
+      end if;
+
+   end Current_Info;
+
    procedure Active_Snapshot_IDs (
       Obj  :     Object_Type;
       List : out Active_Snapshot_IDs_Type)
