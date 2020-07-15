@@ -136,7 +136,9 @@ is
       For_Snapshots :
       for Snap_ID in Snapshots_Index_Type loop
 
-         if Obj.Superblock.Snapshots (Snap_ID).Valid and then
+         if Request_Pool.Initialize_Request_Finished (
+               Obj.Request_Pool_Obj) and then
+            Obj.Superblock.Snapshots (Snap_ID).Valid and then
             Obj.Superblock.Snapshots (Snap_ID).Keep
          then
             List (Snap_ID) := Obj.Superblock.Snapshots (Snap_ID).Gen;
@@ -744,6 +746,12 @@ is
    return Virtual_Block_Address_Type
    is
    begin
+      if not Request_Pool.Initialize_Request_Finished (
+         Obj.Request_Pool_Obj)
+      then
+         return Virtual_Block_Address_Type (0);
+      end if;
+
       return
          Virtual_Block_Address_Type (
             Obj.Superblock.Snapshots (Curr_Snap (Obj)).Nr_Of_Leafs - 1);
