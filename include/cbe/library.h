@@ -54,7 +54,7 @@ class Cbe::Library : public Cbe::Spark_object<353592>
 		void _crypto_cipher_data_required(Request &, Crypto_plain_buffer::Index &) const;
 		void _crypto_plain_data_required(Request &, Crypto_cipher_buffer::Index &) const;
 
-		void _current_info(Info &) const;
+		void _info(Info &) const;
 
 	public:
 
@@ -68,15 +68,15 @@ class Cbe::Library : public Cbe::Spark_object<353592>
 	Virtual_block_address max_vba() const;
 
 	/**
-	 * Get current information about the CBE
+	 * Get information about the CBE
 	 *
-	 * \return current information
+	 * \return  information structure
 	 */
-	Info current_info() const
+	Info info() const
 	{
-		Info info { };
-		_current_info(info);
-		return info;
+		Info inf { };
+		_info(inf);
+		return inf;
 	}
 
 	void execute(Io_buffer            &io_buf,

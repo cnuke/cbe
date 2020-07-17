@@ -117,30 +117,16 @@ is
 
    end Discard_Disposable_Snapshots;
 
-   procedure Current_Info (
+   --
+   --  Info
+   --
+   procedure Info (
       Obj  :     Object_Type;
       Info : out Info_Type)
    is
-      Initialized : Boolean;
    begin
-      Initialized :=
-         Request_Pool.Initialize_Request_Finished (Obj.Request_Pool_Obj);
-
-      if Initialized then
-         Info := (
-            Initialized   => True,
-            Rekeying      => False,
-            Extending_FT  => False,
-            Extending_VBD => False);
-      else
-         Info := (
-            Initialized   => False,
-            Rekeying      => False,
-            Extending_FT  => False,
-            Extending_VBD => False);
-      end if;
-
-   end Current_Info;
+      Superblock_Control.Info (Obj.Superblock, Info);
+   end Info;
 
    procedure Active_Snapshot_IDs (
       Obj  :     Object_Type;

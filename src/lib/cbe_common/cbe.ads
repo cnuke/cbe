@@ -383,7 +383,7 @@ is
       of Superblock_Ciphertext_Type;
 
    type Info_Type is record
-      Initialized   : Boolean;
+      Valid         : Boolean;
       Rekeying      : Boolean;
       Extending_FT  : Boolean;
       Extending_VBD : Boolean;

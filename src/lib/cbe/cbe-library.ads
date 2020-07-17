@@ -47,11 +47,9 @@ is
       List : out Active_Snapshot_IDs_Type);
 
    --
-   --  Get current CBE info
+   --  Info
    --
-   --  \param info  refenence to info
-   --
-   procedure Current_Info (
+   procedure Info (
       Obj  :     Object_Type;
       Info : out Info_Type);
 

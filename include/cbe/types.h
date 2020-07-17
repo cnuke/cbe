@@ -259,7 +259,7 @@ namespace Cbe {
 
 	struct Info
 	{
-		bool initialized;
+		bool valid;
 		bool rekeying;
 		bool extending_vbd;
 		bool extending_ft;

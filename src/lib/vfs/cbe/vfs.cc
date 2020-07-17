@@ -892,10 +892,10 @@ class Vfs_cbe::Wrapper
 				if (!progress) { break; }
 			}
 
-			Cbe::Info const info = _cbe->current_info();
+			Cbe::Info const info = _cbe->info();
 
 			using ES = Extending::State;
-			if (_extend_obj.state == ES::UNKNOWN && info.initialized) {
+			if (_extend_obj.state == ES::UNKNOWN && info.valid) {
 				if (info.extending_ft) {
 					_extend_obj.state = ES::IN_PROGRESS;
 					_extend_obj.type  = Extending::Type::FT;
@@ -909,7 +909,7 @@ class Vfs_cbe::Wrapper
 				}
 			}
 			using RS = Rekeying::State;
-			if (_rekey_obj.state == RS::UNKNOWN && info.initialized) {
+			if (_rekey_obj.state == RS::UNKNOWN && info.valid) {
 				_rekey_obj.state =
 					info.rekeying ? RS::IN_PROGRESS : RS::IDLE;
 			}
