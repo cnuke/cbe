@@ -52,7 +52,10 @@ is
       Obj.Secure_Superblock := False;
       Obj.Wait_For_Front_End := Wait_For_Event_Invalid;
 
-      Obj.Last_Secured_Generation := 0;
+      Obj.Superblock := Superblock_Invalid;
+      Obj.Cur_Gen := Generation_Type'First;
+      Obj.Cur_SB := Superblocks_Index_Type'First;
+      Obj.Last_Secured_Generation := Generation_Type'First;
 
       Obj.SCD_State       := Inactive;
       Obj.SCD_Req         := Request.Invalid_Object;
