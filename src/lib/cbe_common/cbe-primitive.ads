@@ -52,6 +52,7 @@ is
       Tag_Pool_SB_Ctrl_VBD_Ext_Step,
       Tag_Pool_SB_Ctrl_FT_Ext_Step,
       Tag_Pool_SB_Ctrl_Create_Snap,
+      Tag_Pool_SB_Ctrl_Read_VBA,
       Tag_Pool_SB_Ctrl_Sync,
       Tag_Pool_SB_Ctrl_Discard_Snap,
       Tag_Pool_SB_Ctrl_Initialize,
@@ -141,6 +142,7 @@ is
       when Tag_Pool_SB_Ctrl_FT_Ext_Step => "Pool_SB_Ctrl_FT_Ext_Step",
       when Tag_Pool_SB_Ctrl_Create_Snap => "Pool_SB_Ctrl_Create_Snap",
       when Tag_Pool_SB_Ctrl_Sync => "Pool_SB_Ctrl_Sync",
+      when Tag_Pool_SB_Ctrl_Read_VBA => "Pool_SB_Ctrl_Read_VBA",
       when Tag_Pool_SB_Ctrl_Discard_Snap => "Pool_SB_Ctrl_Discard_Snap",
       when Tag_Pool_SB_Ctrl_Initialize => "Pool_SB_Ctrl_Initialize",
       when Tag_Pool_SB_Ctrl_Deinitialize => "Pool_SB_Ctrl_Deinitialize",
@@ -359,6 +361,9 @@ is
    return Boolean;
 
    function Has_Tag_Pool_SB_Ctrl_Sync (Obj : Object_Type)
+   return Boolean;
+
+   function Has_Tag_Pool_SB_Ctrl_Read_VBA (Obj : Object_Type)
    return Boolean;
 
    function Has_Tag_Pool_SB_Ctrl_Discard_Snap (Obj : Object_Type)

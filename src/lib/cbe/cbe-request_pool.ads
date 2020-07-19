@@ -172,6 +172,9 @@ private
       Sync_At_SB_Ctrl_Pending,
       Sync_At_SB_Ctrl_In_Progress,
       Sync_At_SB_Ctrl_Complete,
+      Read_VBA_At_SB_Ctrl_Pending,
+      Read_VBA_At_SB_Ctrl_In_Progress,
+      Read_VBA_At_SB_Ctrl_Complete,
       Discard_Snap_At_SB_Ctrl_Pending,
       Discard_Snap_At_SB_Ctrl_In_Progress,
       Discard_Snap_At_SB_Ctrl_Complete,
@@ -193,6 +196,7 @@ private
       Prim                    : Primitive.Object_Type;
       Request_Finished        : Boolean;
       Nr_Of_Requests_Preponed : Number_Of_Requests_Type;
+      Nr_Of_Blks              : Number_Of_Blocks_Type;
       Nr_Of_Prims_Completed   : Number_Of_Primitives_Type;
       SB_State                : Superblock_State_Type;
       Gen                     : Generation_Type;
@@ -289,6 +293,15 @@ private
    --  Execute_Deinitialize
    --
    procedure Execute_Deinitialize (
+      Jobs     : in out Jobs_Type;
+      Indices  : in out Index_Queue.Queue_Type;
+      Idx      :        Pool_Index_Type;
+      Progress : in out Boolean);
+
+   --
+   --  Execute_Read
+   --
+   procedure Execute_Read (
       Jobs     : in out Jobs_Type;
       Indices  : in out Index_Queue.Queue_Type;
       Idx      :        Pool_Index_Type;

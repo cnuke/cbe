@@ -247,6 +247,10 @@ is
    return Boolean
    is (Obj.Tag = Tag_Pool_SB_Ctrl_Sync);
 
+   function Has_Tag_Pool_SB_Ctrl_Read_VBA (Obj : Object_Type)
+   return Boolean
+   is (Obj.Tag = Tag_Pool_SB_Ctrl_Read_VBA);
+
    function Has_Tag_Pool_SB_Ctrl_Discard_Snap (Obj : Object_Type)
    return Boolean
    is (Obj.Tag = Tag_Pool_SB_Ctrl_Discard_Snap);
