@@ -49,6 +49,15 @@ is
       New_Key_ID       :        Key_ID_Type);
 
    --
+   --  Submit_Primitive_Read_VBA
+   --
+   procedure Submit_Primitive_Read_VBA (
+      Rkg              : in out Rekeying_Type;
+      Prim             :        Primitive.Object_Type;
+      Snapshot         :        Snapshot_Type;
+      Snapshots_Degree :        Tree_Degree_Type);
+
+   --
    --  Submit_Primitive_Resizing
    --
    procedure Submit_Primitive_Resizing (
@@ -283,6 +292,7 @@ private
    type Job_Operation_Type is (
       Invalid,
       Rekey_VBA,
+      Read_VBA,
       VBD_Extension_Step
    );
 

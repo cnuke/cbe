@@ -282,6 +282,10 @@ is
    return Boolean
    is (Obj.Tag = Tag_SB_Ctrl_VBD_Rkg_Rekey_VBA);
 
+   function Has_Tag_SB_Ctrl_VBD_Rkg_Read_VBA (Obj : Object_Type)
+   return Boolean
+   is (Obj.Tag = Tag_SB_Ctrl_VBD_Rkg_Read_VBA);
+
    function Has_Tag_SB_Ctrl_VBD_Rkg_VBD_Ext_Step (Obj : Object_Type)
    return Boolean
    is (Obj.Tag = Tag_SB_Ctrl_VBD_Rkg_VBD_Ext_Step);

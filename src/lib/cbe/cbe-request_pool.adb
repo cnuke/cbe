@@ -265,6 +265,35 @@ is
    end Peek_Generated_Gen;
 
    --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type
+   is
+      Idx : constant Pool_Index_Type :=
+         Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim));
+   begin
+
+      case Obj.Jobs (Idx).State is
+      when Read_VBA_At_SB_Ctrl_Pending =>
+
+         if Primitive.Equal (Prim, Obj.Jobs (Idx).Prim) then
+            return Obj.Jobs (Idx).Req;
+         else
+            raise Program_Error;
+         end if;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_Req;
+
+   --
    --  Drop_Generated_Primitive
    --
    procedure Drop_Generated_Primitive (

@@ -1759,6 +1759,17 @@ is
                   Obj.Request_Pool_Obj,
                   Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)));
 
+            when Primitive.Tag_Pool_SB_Ctrl_Read_VBA =>
+
+               Superblock_Control.Submit_Primitive_Req (
+                  Obj.SB_Ctrl, Prim,
+                  Request_Pool.Peek_Generated_Req (
+                     Obj.Request_Pool_Obj, Prim));
+
+               Request_Pool.Drop_Generated_Primitive (
+                  Obj.Request_Pool_Obj,
+                  Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)));
+
             when
                Primitive.Tag_Pool_SB_Ctrl_Sync |
                Primitive.Tag_Pool_SB_Ctrl_Rekey_VBA |
@@ -2291,6 +2302,14 @@ is
                VBD_Rekeying.Drop_Completed_Primitive (Obj.VBD_Rkg, Prim);
                Progress := True;
 
+            when Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA =>
+
+               Superblock_Control.Mark_Generated_Prim_Complete (
+                  Obj.SB_Ctrl, Prim);
+
+               VBD_Rekeying.Drop_Completed_Primitive (Obj.VBD_Rkg, Prim);
+               Progress := True;
+
             when Primitive.Tag_SB_Ctrl_VBD_Rkg_VBD_Ext_Step =>
 
                Superblock_Control.Mark_Generated_Prim_Complete_VBD_Ext (
@@ -2341,6 +2360,18 @@ is
                not VBD_Rekeying.Primitive_Acceptable (Obj.VBD_Rkg);
 
             case Primitive.Tag (Prim) is
+            when Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA =>
+
+               VBD_Rekeying.Submit_Primitive_Read_VBA (
+                  Obj.VBD_Rkg, Prim,
+                  Superblock_Control.Peek_Generated_Snapshot (
+                     Obj.SB_Ctrl, Prim, Obj.Superblock),
+                  Superblock_Control.Peek_Generated_Snapshots_Degree (
+                     Obj.SB_Ctrl, Prim, Obj.Superblock));
+
+               Superblock_Control.Drop_Generated_Primitive (Obj.SB_Ctrl, Prim);
+               Progress := True;
+
             when Primitive.Tag_SB_Ctrl_VBD_Rkg_Rekey_VBA =>
 
                VBD_Rekeying.Submit_Primitive_Rekeying (

@@ -281,6 +281,45 @@ is
    end Submit_Primitive_Rekeying;
 
    --
+   --  Submit_Primitive_Read_VBA
+   --
+   procedure Submit_Primitive_Read_VBA (
+      Rkg              : in out Rekeying_Type;
+      Prim             :        Primitive.Object_Type;
+      Snapshot         :        Snapshot_Type;
+      Snapshots_Degree :        Tree_Degree_Type)
+   is
+   begin
+
+      Find_Invalid_Job :
+      for Idx in Rkg.Jobs'Range loop
+
+         if Rkg.Jobs (Idx).Operation = Invalid then
+
+            case Primitive.Tag (Prim) is
+            when Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA =>
+
+               Rkg.Jobs (Idx).Operation        := Read_VBA;
+               Rkg.Jobs (Idx).Submitted_Prim   := Prim;
+               Rkg.Jobs (Idx).Snapshots (0)    := Snapshot;
+               Rkg.Jobs (Idx).Snapshots_Degree := Snapshots_Degree;
+               Rkg.Jobs (Idx).State            := Submitted;
+               return;
+
+            when others =>
+
+               raise Program_Error;
+
+            end case;
+
+         end if;
+
+      end loop Find_Invalid_Job;
+      raise Program_Error;
+
+   end Submit_Primitive_Read_VBA;
+
+   --
    --  Peek_Completed_Primitive
    --
    function Peek_Completed_Primitive (Rkg : Rekeying_Type)
@@ -2182,6 +2221,10 @@ is
       for Idx in Rkg.Jobs'Range loop
 
          case Rkg.Jobs (Idx).Operation is
+         when Read_VBA =>
+
+            raise Program_Error;
+
          when Rekey_VBA =>
 
             Execute_Rekey_VBA (Rkg.Jobs (Idx), Idx, Progress);
