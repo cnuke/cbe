@@ -2269,13 +2269,41 @@ is
                VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
                Progress := True;
 
-            when Read | Sync =>
+            when Sync =>
 
                Block_IO.Submit_Primitive (
                   Obj.IO_Obj, Primitive.Tag_VBD_Rkg_Blk_IO, Prim);
 
                VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
                Progress := True;
+
+            when Read =>
+
+               case Primitive.Tag (Prim) is
+               when Primitive.Tag_VBD_Rkg_Blk_IO =>
+
+                  Block_IO.Submit_Primitive (
+                     Obj.IO_Obj, Primitive.Tag_VBD_Rkg_Blk_IO, Prim);
+
+                  VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
+                  Progress := True;
+
+               when Primitive.Tag_VBD_Rkg_Blk_IO_Client_Data =>
+
+                  Block_IO.Submit_Primitive_Req (
+                     Obj.IO_Obj,
+                     Primitive.Tag_VBD_Rkg_Blk_IO,
+                     Prim,
+                     VBD_Rekeying.Peek_Generated_Req (Obj.VBD_Rkg, Prim));
+
+                  VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
+                  Progress := True;
+
+               when others =>
+
+                  raise Program_Error;
+
+               end case;
 
             end case;
 
@@ -2364,6 +2392,7 @@ is
 
                VBD_Rekeying.Submit_Primitive_Read_VBA (
                   Obj.VBD_Rkg, Prim,
+                  Superblock_Control.Peek_Generated_Req (Obj.SB_Ctrl, Prim),
                   Superblock_Control.Peek_Generated_Snapshot (
                      Obj.SB_Ctrl, Prim, Obj.Superblock),
                   Superblock_Control.Peek_Generated_Snapshots_Degree (

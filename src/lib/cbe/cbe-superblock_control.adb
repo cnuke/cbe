@@ -1909,10 +1909,10 @@ is
       when Submitted =>
 
          Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
-            Op     => Primitive_Operation_Type'First,
+            Op     => Read,
             Succ   => False,
             Tg     => Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA,
-            Blk_Nr => Block_Number_Type'First,
+            Blk_Nr => Primitive.Block_Number (Job.Submitted_Prim),
             Idx    => Primitive.Index_Type (Job_Idx));
 
          Job.State := Read_VBA_At_VBD_Pending;
@@ -2709,6 +2709,38 @@ is
       end loop Inspect_Each_Job;
       return Primitive.Invalid_Object;
    end Peek_Generated_FT_Rszg_Primitive;
+
+   --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+      if Ctrl.Jobs (Idx).Operation /= Invalid then
+
+         case Ctrl.Jobs (Idx).State is
+         when Read_VBA_At_VBD_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
+               return Ctrl.Jobs (Idx).Req;
+            end if;
+            raise Program_Error;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      end if;
+      raise Program_Error;
+
+   end Peek_Generated_Req;
 
    --
    --  Peek_Generated_Hash

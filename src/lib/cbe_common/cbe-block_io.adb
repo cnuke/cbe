@@ -16,6 +16,7 @@ is
        Prim       => Primitive.Invalid_Object,
        Hash_Valid => False,
        Hash       => (others => 0),
+       Req        => Request.Invalid_Object,
        State      => Unused,
        Key_ID     => Key_ID_Invalid);
 
@@ -50,6 +51,7 @@ is
                Prim       => Primitive.Copy_Valid_Object_New_Tag (Prim, Tag),
                Hash_Valid => False,
                Hash       => (others => 0),
+               Req        => Request.Invalid_Object,
                State      => Pending,
                Key_ID     => Key_ID_Type'First);
 
@@ -59,6 +61,35 @@ is
       end loop;
       raise Program_Error;
    end Submit_Primitive;
+
+   --
+   --  Submit_Primitive_Req
+   --
+   procedure Submit_Primitive_Req (
+      Obj  : in out Object_Type;
+      Tag  :        Primitive.Tag_Type;
+      Prim :        Primitive.Object_Type;
+      Req  :        Request.Object_Type)
+   is
+   begin
+      for Idx in Obj.Entries'Range loop
+         if Obj.Entries (Idx).State = Unused then
+            Obj.Entries (Idx) := (
+               Orig_Tag   => Primitive.Tag (Prim),
+               Prim       => Primitive.Copy_Valid_Object_New_Tag (Prim, Tag),
+               Hash_Valid => False,
+               Hash       => (others => 0),
+               Req        => Req,
+               State      => Pending,
+               Key_ID     => Key_ID_Type'First);
+
+            Obj.Used_Entries := Obj.Used_Entries + 1;
+            raise Program_Error;
+            return;
+         end if;
+      end loop;
+      raise Program_Error;
+   end Submit_Primitive_Req;
 
    procedure Submit_Primitive_Decrypt (
       Obj    : in out Object_Type;
@@ -75,6 +106,7 @@ is
                   Prim, Primitive.Tag_Decrypt),
                Hash_Valid => True,
                Hash       => Hash,
+               Req        => Request.Invalid_Object,
                State      => Pending,
                Key_ID     => Key_ID);
 
@@ -104,6 +136,7 @@ is
                   Idx    => Primitive.Index (Prim)),
                State      => Pending,
                Key_ID     => Key_ID_Invalid,
+               Req        => Request.Invalid_Object,
                Hash_Valid => False,
                Hash       => (others => 0));
 

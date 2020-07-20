@@ -296,6 +296,14 @@ is
    return Tree_Degree_Type;
 
    --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Ctrl : Control_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type;
+
+   --
    --  Peek_Generated_FT_Nr_Of_Leaves
    --
    function Peek_Generated_FT_Nr_Of_Leaves (

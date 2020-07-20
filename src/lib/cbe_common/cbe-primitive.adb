@@ -326,6 +326,10 @@ is
    function Has_Tag_VBD_Rkg_Blk_IO (Obj : Object_Type) return Boolean
    is (Obj.Tag = Tag_VBD_Rkg_Blk_IO);
 
+   function Has_Tag_VBD_Rkg_Blk_IO_Client_Data (Obj : Object_Type)
+   return Boolean
+   is (Obj.Tag = Tag_VBD_Rkg_Blk_IO_Client_Data);
+
    function Has_Tag_VBD_Rkg_Crypto_Encrypt (Obj : Object_Type) return Boolean
    is (Obj.Tag = Tag_VBD_Rkg_Crypto_Encrypt);
 

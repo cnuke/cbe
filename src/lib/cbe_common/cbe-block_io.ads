@@ -9,6 +9,7 @@
 pragma Ada_2012;
 
 with CBE.Primitive;
+with CBE.Request;
 
 package CBE.Block_IO
 with SPARK_Mode
@@ -65,6 +66,15 @@ is
       Tag        :        Primitive.Tag_Type;
       Prim       :        Primitive.Object_Type;
       Data_Index :    out Data_Index_Type);
+
+   --
+   --  Submit_Primitive_Req
+   --
+   procedure Submit_Primitive_Req (
+      Obj  : in out Object_Type;
+      Tag  :        Primitive.Tag_Type;
+      Prim :        Primitive.Object_Type;
+      Req  :        Request.Object_Type);
 
    --
    --  FIXME This function is currently only needed for reading actual data
@@ -207,6 +217,7 @@ private
       Hash_Valid : Boolean;
       State      : Entry_State_Type;
       Key_ID     : Key_ID_Type;
+      Req        : Request.Object_Type;
    end record;
 
    type Entries_Type is array (Data_Index_Type'Range) of Entry_Type;

@@ -10,6 +10,7 @@ pragma Ada_2012;
 
 with CBE.Primitive;
 with CBE.Write_Back;
+with CBE.Request;
 with Interfaces;
 
 package CBE.VBD_Rekeying
@@ -54,6 +55,7 @@ is
    procedure Submit_Primitive_Read_VBA (
       Rkg              : in out Rekeying_Type;
       Prim             :        Primitive.Object_Type;
+      Req              :        Request.Object_Type;
       Snapshot         :        Snapshot_Type;
       Snapshots_Degree :        Tree_Degree_Type);
 
@@ -234,6 +236,14 @@ is
    return Key_ID_Type;
 
    --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Rkg  : Rekeying_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type;
+
+   --
    --  Peek_Generated_Free_Gen
    --
    function Peek_Generated_Free_Gen (
@@ -311,6 +321,10 @@ private
       Read_Leaf_Node_In_Progress,
       Read_Leaf_Node_Completed,
 
+      Read_Leaf_Node_For_Client_Pending,
+      Read_Leaf_Node_For_Client_In_Progress,
+      Read_Leaf_Node_For_Client_Completed,
+
       Decrypt_Leaf_Node_Pending,
       Decrypt_Leaf_Node_In_Progress,
       Decrypt_Leaf_Node_Completed,
@@ -376,6 +390,7 @@ private
       T1_Node_Walk     : Type_1_Node_Walk_Type;
       New_PBAs         : Write_Back.New_PBAs_Type;
       PBA              : Physical_Block_Address_Type;
+      Req              : Request.Object_Type;
       Nr_Of_PBAs       : Number_Of_Blocks_Type;
       Nr_Of_Blks       : Number_Of_Blocks_Type;
       Nr_Of_Leaves     : Tree_Number_Of_Leafs_Type;
@@ -389,6 +404,14 @@ private
    type Rekeying_Type is record
       Jobs : Jobs_Type;
    end record;
+
+   --
+   --  Execute_Read_VBA
+   --
+   procedure Execute_Read_VBA (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      Progress : in out Boolean);
 
    --
    --  Execute_Rekey_VBA
@@ -427,6 +450,14 @@ private
    --  Execute_VBD_Ext_Step_Read_Inner_Node_Completed
    --
    procedure Execute_VBD_Ext_Step_Read_Inner_Node_Completed (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      Progress :    out Boolean);
+
+   --
+   --  Execute_Read_VBA_Read_Inner_Node_Completed
+   --
+   procedure Execute_Read_VBA_Read_Inner_Node_Completed (
       Job      : in out Job_Type;
       Job_Idx  :        Jobs_Index_Type;
       Progress :    out Boolean);
