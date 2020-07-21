@@ -323,12 +323,16 @@ is
    return Boolean
    is (Obj.Tag = Tag_FT_Rszg_MT_Rszg_Extend_By_One_Leaf);
 
+   function Has_Tag_Blk_IO_Blk_Dev_Read (Obj : Object_Type)
+   return Boolean
+   is (Obj.Tag = Tag_Blk_IO_Blk_Dev_Read);
+
    function Has_Tag_VBD_Rkg_Blk_IO (Obj : Object_Type) return Boolean
    is (Obj.Tag = Tag_VBD_Rkg_Blk_IO);
 
-   function Has_Tag_VBD_Rkg_Blk_IO_Client_Data (Obj : Object_Type)
+   function Has_Tag_VBD_Rkg_Blk_IO_Read_Client_Data (Obj : Object_Type)
    return Boolean
-   is (Obj.Tag = Tag_VBD_Rkg_Blk_IO_Client_Data);
+   is (Obj.Tag = Tag_VBD_Rkg_Blk_IO_Read_Client_Data);
 
    function Has_Tag_VBD_Rkg_Crypto_Encrypt (Obj : Object_Type) return Boolean
    is (Obj.Tag = Tag_VBD_Rkg_Crypto_Encrypt);

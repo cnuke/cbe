@@ -1025,7 +1025,7 @@ is
             Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
                Op     => Read,
                Succ   => False,
-               Tg     => Primitive.Tag_VBD_Rkg_Blk_IO_Client_Data,
+               Tg     => Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data,
                Blk_Nr => Block_Number_Type (Child.PBA),
                Idx    => Primitive.Index_Type (Job_Idx));
 

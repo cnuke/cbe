@@ -7,6 +7,7 @@
 --
 
 pragma Ada_2012;
+with CBE.Debug;
 
 package body CBE.Block_IO
 with SPARK_Mode
@@ -16,6 +17,7 @@ is
      Orig_Tag       => Primitive.Tag_Invalid,
      Prim           => Primitive.Invalid_Object,
      Submitted_Prim => Primitive.Invalid_Object,
+     Generated_Prim => Primitive.Invalid_Object,
      Hash_Valid     => False,
      Hash           => (others => 0),
      Req            => Request.Invalid_Object,
@@ -78,11 +80,20 @@ is
 
          if Obj.Entries (Idx).State = Unused then
 
-            Obj.Entries (Idx).Submitted_Prim := Prim;
-            Obj.Entries (Idx).Req := Req;
-            Obj.Entries (Idx).State := Submitted;
-            Obj.Used_Entries := Obj.Used_Entries + 1;
-            return;
+            case Primitive.Tag (Prim) is
+            when Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
+
+               Obj.Entries (Idx).Submitted_Prim := Prim;
+               Obj.Entries (Idx).Req := Req;
+               Obj.Entries (Idx).State := Read_Client_Data_Submitted;
+               Obj.Used_Entries := Obj.Used_Entries + 1;
+               return;
+
+            when others =>
+
+               raise Program_Error;
+
+            end case;
 
          end if;
 
@@ -248,6 +259,38 @@ is
       end loop;
    end Drop_Completed_Primitive;
 
+   --
+   --  Execute
+   --
+   procedure Execute (
+      Obj      : in out Object_Type;
+      Progress : in out Boolean)
+   is
+   begin
+
+      Execute_Each_Valid_Entry :
+      for Idx in Obj.Entries'Range loop
+
+         case Obj.Entries (Idx).State is
+         when
+            Read_Client_Data_Submitted |
+            Read_Client_Data_Read_Data_Pending |
+            Read_Client_Data_Read_Data_In_Progress |
+            Read_Client_Data_Read_Data_Completed
+         =>
+
+            Execute_Read_Client_Data (Obj.Entries (Idx), Idx, Progress);
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop Execute_Each_Valid_Entry;
+
+   end Execute;
+
    function Peek_Generated_Primitive (Obj : Object_Type)
    return Primitive.Object_Type
    is
@@ -325,5 +368,46 @@ is
       Primitive.Success (Obj.Entries (Data_Idx).Prim, Success);
       Obj.Entries (Data_Idx).State := Complete;
    end Mark_Generated_Primitive_Complete;
+
+   --
+   --  Execute_Read_Client_Data
+   --
+   procedure Execute_Read_Client_Data (
+      Entr      : in out Entry_Type;
+      Entry_Idx :        Entries_Index_Type;
+      Progress  : in out Boolean)
+   is
+   begin
+
+      case Entr.State is
+      when Read_Client_Data_Submitted =>
+
+         Entr.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+            Op     => Read,
+            Succ   => False,
+            Tg     => Primitive.Tag_Blk_IO_Blk_Dev_Read,
+            Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
+            Idx    => Primitive.Index_Type (Entry_Idx));
+
+         Entr.State := Read_Client_Data_Read_Data_Pending;
+         Progress := True;
+
+      when Read_Client_Data_Read_Data_Completed =>
+
+--         Primitive.Success (
+--            Entr.Submitted_Prim,
+--            Primitive.Success (Entr.Generated_Prim));
+--
+--         Entr.State := Completed;
+--         Progress := True;
+         null;
+
+      when others =>
+
+         null;
+
+      end case;
+
+   end Execute_Read_Client_Data;
 
 end CBE.Block_IO;

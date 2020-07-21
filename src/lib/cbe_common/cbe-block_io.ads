@@ -149,6 +149,13 @@ is
       Prim :        Primitive.Object_Type);
 
    --
+   --  Execute
+   --
+   procedure Execute (
+      Obj      : in out Object_Type;
+      Progress : in out Boolean);
+
+   --
    --  Check for any generated primitive
    --
    --  The method will always a return a primitive and the caller
@@ -209,7 +216,10 @@ private
 
    type Entry_State_Type is (
       Unused,
-      Submitted,
+      Read_Client_Data_Submitted,
+      Read_Client_Data_Read_Data_Pending,
+      Read_Client_Data_Read_Data_In_Progress,
+      Read_Client_Data_Read_Data_Completed,
       Pending,
       In_Progress,
       Complete);
@@ -223,9 +233,12 @@ private
       Key_ID         : Key_ID_Type;
       Req            : Request.Object_Type;
       Submitted_Prim : Primitive.Object_Type;
+      Generated_Prim : Primitive.Object_Type;
    end record;
 
-   type Entries_Type is array (Data_Index_Type'Range) of Entry_Type;
+   subtype Entries_Index_Type is Data_Index_Type;
+
+   type Entries_Type is array (Entries_Index_Type) of Entry_Type;
 
    --
    --  Object_Type
@@ -234,5 +247,13 @@ private
       Entries      : Entries_Type;
       Used_Entries : Num_Entries_Type;
    end record;
+
+   --
+   --  Execute_Read_Client_Data
+   --
+   procedure Execute_Read_Client_Data (
+      Entr      : in out Entry_Type;
+      Entry_Idx :        Entries_Index_Type;
+      Progress  : in out Boolean);
 
 end CBE.Block_IO;

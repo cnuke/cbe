@@ -2288,7 +2288,7 @@ is
                   VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
                   Progress := True;
 
-               when Primitive.Tag_VBD_Rkg_Blk_IO_Client_Data =>
+               when Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
 
                   Block_IO.Submit_Primitive_Req (
                      Obj.IO_Obj,
@@ -3230,6 +3230,7 @@ is
       --  work with all most all modules. IT uses the 'Tag' field
       --  to differentiate the modules.
       --
+      Block_IO.Execute (Obj.IO_Obj, Progress);
 
       Loop_IO_Completed_Prims :
       loop
