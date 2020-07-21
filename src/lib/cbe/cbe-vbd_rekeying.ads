@@ -57,7 +57,8 @@ is
       Prim             :        Primitive.Object_Type;
       Req              :        Request.Object_Type;
       Snapshot         :        Snapshot_Type;
-      Snapshots_Degree :        Tree_Degree_Type);
+      Snapshots_Degree :        Tree_Degree_Type;
+      Key_ID           :        Key_ID_Type);
 
    --
    --  Submit_Primitive_Resizing

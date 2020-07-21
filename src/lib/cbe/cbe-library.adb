@@ -181,30 +181,37 @@ is
       Request_Pool.Drop_Completed_Request (Obj.Request_Pool_Obj, Req);
    end Drop_Completed_Client_Request;
 
+   --
+   --  Has_IO_Request
+   --
    procedure Has_IO_Request (
       Obj      :     Object_Type;
       Req      : out Request.Object_Type;
       Data_Idx : out Block_IO.Data_Index_Type)
    is
+      Prim : constant Primitive.Object_Type :=
+         Block_IO.Peek_Generated_Blk_Dev_Primitive (Obj.IO_Obj);
    begin
-      Req      := Request.Invalid_Object;
-      Data_Idx := 0;
-      declare
-         Prim : constant Primitive.Object_Type :=
-            Block_IO.Peek_Generated_Primitive (Obj.IO_Obj);
-      begin
-         if Primitive.Valid (Prim) then
-            Data_Idx := Block_IO.Peek_Generated_Data_Index (Obj.IO_Obj, Prim);
-            Req      := Request.Valid_Object (
-               Op     => Prim_Op_To_Req_Op (Primitive.Operation (Prim)),
-               Succ   => False,
-               Blk_Nr => Primitive.Block_Number (Prim),
-               Off    => 0,
-               Cnt    => 1,
-               Key    => 0,
-               Tg     => 0);
-         end if;
-      end;
+
+      if Primitive.Valid (Prim) then
+
+         Data_Idx := Block_IO.Peek_Generated_Data_Index (Obj.IO_Obj, Prim);
+         Req      := Request.Valid_Object (
+            Op     => Prim_Op_To_Req_Op (Primitive.Operation (Prim)),
+            Succ   => False,
+            Blk_Nr => Primitive.Block_Number (Prim),
+            Off    => 0,
+            Cnt    => 1,
+            Key    => 0,
+            Tg     => 0);
+
+      else
+
+         Req := Request.Invalid_Object;
+         Data_Idx := Block_IO.Data_Index_Type'First;
+
+      end if;
+
    end Has_IO_Request;
 
    procedure IO_Request_In_Progress (
@@ -2290,10 +2297,12 @@ is
 
                when Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
 
-                  Block_IO.Submit_Primitive_Req (
+                  Block_IO.Submit_Primitive_Req_Key_ID (
                      Obj.IO_Obj,
                      Prim,
-                     VBD_Rekeying.Peek_Generated_Req (Obj.VBD_Rkg, Prim));
+                     VBD_Rekeying.Peek_Generated_Req (Obj.VBD_Rkg, Prim),
+                     VBD_Rekeying.Peek_Generated_Crypto_Key_ID (
+                        Obj.VBD_Rkg, Prim));
 
                   VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
                   Progress := True;
@@ -2395,7 +2404,9 @@ is
                   Superblock_Control.Peek_Generated_Snapshot (
                      Obj.SB_Ctrl, Prim, Obj.Superblock),
                   Superblock_Control.Peek_Generated_Snapshots_Degree (
-                     Obj.SB_Ctrl, Prim, Obj.Superblock));
+                     Obj.SB_Ctrl, Prim, Obj.Superblock),
+                  Superblock_Control.Peek_Generated_Key_ID (
+                     Obj.SB_Ctrl, Prim));
 
                Superblock_Control.Drop_Generated_Primitive (Obj.SB_Ctrl, Prim);
                Progress := True;
@@ -3231,6 +3242,50 @@ is
       --  to differentiate the modules.
       --
       Block_IO.Execute (Obj.IO_Obj, Progress);
+
+      Loop_Generated_Crypto_Prims :
+      loop
+         Declare_Crypto_Prim :
+         declare
+            Prim : constant Primitive.Object_Type :=
+               Block_IO.Peek_Generated_Crypto_Primitive (Obj.IO_Obj);
+         begin
+            exit Loop_Generated_Crypto_Prims when
+               not Primitive.Valid (Prim) or else
+               not Crypto.Primitive_Acceptable (Obj.Crypto_Obj);
+
+            case Primitive.Tag (Prim) is
+            when Primitive.Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data =>
+
+               Declare_Cipher_Buf_Idx :
+               declare
+                  Idx : Crypto.Item_Index_Type;
+               begin
+
+                  Crypto.Submit_Primitive (
+                     Obj.Crypto_Obj,
+                     Prim,
+                     Block_IO.Peek_Generated_Key_ID (Obj.IO_Obj, Prim),
+                     Idx);
+
+                  Crypto_Cipher_Buf (Idx) :=
+                     IO_Buf (Block_IO.Peek_Generated_Data_Index (
+                        Obj.IO_Obj, Prim));
+
+               end Declare_Cipher_Buf_Idx;
+
+               Block_IO.Drop_Generated_Primitive (Obj.IO_Obj, Prim);
+               Progress := True;
+               Debug.Print_String ("XXX");
+
+            when others =>
+
+               raise Program_Error;
+
+            end case;
+
+         end Declare_Crypto_Prim;
+      end loop Loop_Generated_Crypto_Prims;
 
       Loop_IO_Completed_Prims :
       loop

@@ -1901,12 +1901,41 @@ is
    procedure Execute_Read_VBA (
       Job           : in out Job_Type;
       Job_Idx       :        Jobs_Index_Type;
+      SB            :        Superblock_Type;
       Progress      : in out Boolean)
    is
    begin
 
       case Job.State is
       when Submitted =>
+
+         case SB.State is
+         when Rekeying =>
+
+            Declare_VBA :
+            declare
+               VBA : constant Virtual_Block_Address_Type :=
+                  Virtual_Block_Address_Type (
+                     Primitive.Block_Number (Job.Submitted_Prim));
+            begin
+
+               if VBA < SB.Rekeying_VBA  then
+                  Job.Curr_Key_Plaintext.ID := SB.Current_Key.ID;
+               else
+                  Job.Curr_Key_Plaintext.ID := SB.Previous_Key.ID;
+               end if;
+
+            end Declare_VBA;
+
+         when Normal | Extending_FT | Extending_VBD =>
+
+            Job.Curr_Key_Plaintext.ID := SB.Current_Key.ID;
+
+         when Invalid =>
+
+            raise Program_Error;
+
+         end case;
 
          Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
             Op     => Read,
@@ -2521,7 +2550,7 @@ is
          case Ctrl.Jobs (Idx).Operation is
          when Read_VBA =>
 
-            Execute_Read_VBA (Ctrl.Jobs (Idx), Idx, Progress);
+            Execute_Read_VBA (Ctrl.Jobs (Idx), Idx, SB, Progress);
 
          when Sync =>
 
@@ -3399,6 +3428,13 @@ is
             raise Program_Error;
 
          when Remove_Current_Key_At_Crypto_Module_Pending =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
+               return Ctrl.Jobs (Idx).Curr_Key_Plaintext.ID;
+            end if;
+            raise Program_Error;
+
+         when Read_VBA_At_VBD_Pending =>
 
             if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
                return Ctrl.Jobs (Idx).Curr_Key_Plaintext.ID;

@@ -567,6 +567,7 @@ private
    procedure Execute_Read_VBA (
       Job           : in out Job_Type;
       Job_Idx       :        Jobs_Index_Type;
+      SB            :        Superblock_Type;
       Progress      : in out Boolean);
 
    --

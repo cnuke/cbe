@@ -68,12 +68,13 @@ is
       Data_Index :    out Data_Index_Type);
 
    --
-   --  Submit_Primitive_Req
+   --  Submit_Primitive_Req_Key_ID
    --
-   procedure Submit_Primitive_Req (
-      Obj  : in out Object_Type;
-      Prim :        Primitive.Object_Type;
-      Req  :        Request.Object_Type);
+   procedure Submit_Primitive_Req_Key_ID (
+      Obj    : in out Object_Type;
+      Prim   :        Primitive.Object_Type;
+      Req    :        Request.Object_Type;
+      Key_ID :        Key_ID_Type);
 
    --
    --  FIXME This function is currently only needed for reading actual data
@@ -156,16 +157,15 @@ is
       Progress : in out Boolean);
 
    --
-   --  Check for any generated primitive
+   --  Peek_Generated_Blk_Dev_Primitive
    --
-   --  The method will always a return a primitive and the caller
-   --  always has to check if the returned primitive is in fact a
-   --  valid one.
+   function Peek_Generated_Blk_Dev_Primitive (Obj : Object_Type)
+   return Primitive.Object_Type;
+
    --
-   --  \return a valid Primitive will be returned if there is an
-   --         generated primitive pending, otherwise an invalid one
+   --  Peek_Generated_Crypto_Primitive
    --
-   function Peek_Generated_Primitive (Obj : Object_Type)
+   function Peek_Generated_Crypto_Primitive (Obj : Object_Type)
    return Primitive.Object_Type;
 
    --
@@ -182,6 +182,14 @@ is
       Obj  : Object_Type;
       Prim : Primitive.Object_Type)
    return Data_Index_Type;
+
+   --
+   --  Peek_Generated_Key_ID
+   --
+   function Peek_Generated_Key_ID (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Key_ID_Type;
 
    --
    --  Discard given generated primitive
@@ -217,9 +225,15 @@ private
    type Entry_State_Type is (
       Unused,
       Read_Client_Data_Submitted,
+
       Read_Client_Data_Read_Data_Pending,
       Read_Client_Data_Read_Data_In_Progress,
       Read_Client_Data_Read_Data_Completed,
+
+      Read_Client_Data_Decrypt_And_Supply_Data_Pending,
+      Read_Client_Data_Decrypt_And_Supply_Data_In_Progress,
+      Read_Client_Data_Decrypt_And_Supply_Data_Completed,
+
       Pending,
       In_Progress,
       Complete);

@@ -7,7 +7,6 @@
 --
 
 pragma Ada_2012;
-with CBE.Debug;
 
 package body CBE.Block_IO
 with SPARK_Mode
@@ -67,12 +66,13 @@ is
    end Submit_Primitive;
 
    --
-   --  Submit_Primitive_Req
+   --  Submit_Primitive_Req_Key_ID
    --
-   procedure Submit_Primitive_Req (
-      Obj  : in out Object_Type;
-      Prim :        Primitive.Object_Type;
-      Req  :        Request.Object_Type)
+   procedure Submit_Primitive_Req_Key_ID (
+      Obj    : in out Object_Type;
+      Prim   :        Primitive.Object_Type;
+      Req    :        Request.Object_Type;
+      Key_ID :        Key_ID_Type)
    is
    begin
 
@@ -87,6 +87,7 @@ is
                Obj.Entries (Idx).Req := Req;
                Obj.Entries (Idx).State := Read_Client_Data_Submitted;
                Obj.Used_Entries := Obj.Used_Entries + 1;
+               Obj.Entries (Idx).Key_ID := Key_ID;
                return;
 
             when others =>
@@ -100,7 +101,7 @@ is
       end loop;
       raise Program_Error;
 
-   end Submit_Primitive_Req;
+   end Submit_Primitive_Req_Key_ID;
 
    procedure Submit_Primitive_Decrypt (
       Obj    : in out Object_Type;
@@ -291,44 +292,141 @@ is
 
    end Execute;
 
-   function Peek_Generated_Primitive (Obj : Object_Type)
+   --
+   --  Peek_Generated_Blk_Dev_Primitive
+   --
+   function Peek_Generated_Blk_Dev_Primitive (Obj : Object_Type)
    return Primitive.Object_Type
    is
    begin
-      for I in Obj.Entries'Range loop
-         if Obj.Entries (I).State = Pending then
-            return Obj.Entries (I).Prim;
-         end if;
+
+      for Idx in Obj.Entries'Range loop
+
+         case Obj.Entries (Idx).State is
+         when Pending =>
+
+            return Obj.Entries (Idx).Prim;
+
+         when Read_Client_Data_Read_Data_Pending =>
+
+            return Obj.Entries (Idx).Generated_Prim;
+
+         when others =>
+
+            null;
+
+         end case;
+
       end loop;
 
       return Primitive.Invalid_Object;
-   end Peek_Generated_Primitive;
 
+   end Peek_Generated_Blk_Dev_Primitive;
+
+   --
+   --  Peek_Generated_Crypto_Primitive
+   --
+   function Peek_Generated_Crypto_Primitive (Obj : Object_Type)
+   return Primitive.Object_Type
+   is
+   begin
+
+      for Idx in Obj.Entries'Range loop
+
+         case Obj.Entries (Idx).State is
+         when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
+
+            return Obj.Entries (Idx).Generated_Prim;
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop;
+
+      return Primitive.Invalid_Object;
+
+   end Peek_Generated_Crypto_Primitive;
+
+   --
+   --  Peek_Generated_Data_Index
+   --
    function Peek_Generated_Data_Index (
       Obj  : Object_Type;
-      Prim : CBE.Primitive.Object_Type)
+      Prim : Primitive.Object_Type)
    return Data_Index_Type
    is
    begin
-      for I in Obj.Entries'Range loop
-         --
-         --  XXX why is the condition different from
-         --     'Peek_Generated_Primitive' and 'Drop_Completed_Primitive'?
-         --
-         if
-            Obj.Entries (I).State = Pending or else
-            Obj.Entries (I).State = In_Progress
-         then
-            if Primitive.Equal (Prim, Obj.Entries (I).Prim) then
-               return I;
-            end if;
-         end if;
-      end loop;
 
-      --  XXX precondition
+      for Idx in Obj.Entries'Range loop
+
+         --
+         --  FIXME
+         --
+         --  Why must the function return a valid index when the entry is
+         --  'In_Progress'?
+         --
+         case Obj.Entries (Idx).State is
+         when Pending | In_Progress =>
+
+            if Primitive.Equal (Prim, Obj.Entries (Idx).Prim) then
+               return Idx;
+            end if;
+
+         when
+            Read_Client_Data_Read_Data_Pending |
+            Read_Client_Data_Decrypt_And_Supply_Data_Pending
+         =>
+
+            if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
+               return Idx;
+            end if;
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop;
       raise Program_Error;
+
    end Peek_Generated_Data_Index;
 
+   --
+   --  Peek_Generated_Key_ID
+   --
+   function Peek_Generated_Key_ID (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Key_ID_Type
+   is
+      Idx : constant Entries_Index_Type :=
+         Entries_Index_Type (Primitive.Index (Prim));
+   begin
+
+      case Obj.Entries (Idx).State is
+      when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
+
+         if not Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         return Obj.Entries (Idx).Key_ID;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_Key_ID;
+
+   --
+   --  Drop_Generated_Primitive
+   --
    procedure Drop_Generated_Primitive (
       Obj  : in out Object_Type;
       Prim :        Primitive.Object_Type)
@@ -345,28 +443,60 @@ is
       end loop;
    end Drop_Generated_Primitive;
 
+   --
+   --  Drop_Generated_Primitive_2
+   --
    procedure Drop_Generated_Primitive_2 (
       Obj      : in out Object_Type;
       Data_Idx :        Data_Index_Type)
    is
    begin
-      if Obj.Entries (Data_Idx).State /= Pending then
+
+      case Obj.Entries (Data_Idx).State is
+      when Pending =>
+
+         Obj.Entries (Data_Idx).State := In_Progress;
+
+      when Read_Client_Data_Read_Data_Pending =>
+
+         Obj.Entries (Data_Idx).State :=
+            Read_Client_Data_Read_Data_In_Progress;
+
+      when others =>
+
          raise Program_Error;
-      end if;
-      Obj.Entries (Data_Idx).State := In_Progress;
+
+      end case;
+
    end Drop_Generated_Primitive_2;
 
+   --
+   --  Mark_Generated_Primitive_Complete
+   --
    procedure Mark_Generated_Primitive_Complete (
       Obj      : in out Object_Type;
       Data_Idx :        Data_Index_Type;
       Success  :        Boolean)
    is
    begin
-      if Obj.Entries (Data_Idx).State /= In_Progress then
+
+      case Obj.Entries (Data_Idx).State is
+      when In_Progress =>
+
+         Primitive.Success (Obj.Entries (Data_Idx).Prim, Success);
+         Obj.Entries (Data_Idx).State := Complete;
+
+      when Read_Client_Data_Read_Data_In_Progress =>
+
+         Primitive.Success (Obj.Entries (Data_Idx).Generated_Prim, Success);
+         Obj.Entries (Data_Idx).State := Read_Client_Data_Read_Data_Completed;
+
+      when others =>
+
          raise Program_Error;
-      end if;
-      Primitive.Success (Obj.Entries (Data_Idx).Prim, Success);
-      Obj.Entries (Data_Idx).State := Complete;
+
+      end case;
+
    end Mark_Generated_Primitive_Complete;
 
    --
@@ -394,13 +524,16 @@ is
 
       when Read_Client_Data_Read_Data_Completed =>
 
---         Primitive.Success (
---            Entr.Submitted_Prim,
---            Primitive.Success (Entr.Generated_Prim));
---
---         Entr.State := Completed;
---         Progress := True;
-         null;
+         Entr.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+            Op     => Read,
+            Succ   => False,
+            Tg     =>
+               Primitive.Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data,
+            Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
+            Idx    => Primitive.Index_Type (Entry_Idx));
+
+         Entr.State := Read_Client_Data_Decrypt_And_Supply_Data_Pending;
+         Progress := True;
 
       when others =>
 

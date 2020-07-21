@@ -289,7 +289,8 @@ is
       Prim             :        Primitive.Object_Type;
       Req              :        Request.Object_Type;
       Snapshot         :        Snapshot_Type;
-      Snapshots_Degree :        Tree_Degree_Type)
+      Snapshots_Degree :        Tree_Degree_Type;
+      Key_ID           :        Key_ID_Type)
    is
    begin
 
@@ -307,6 +308,7 @@ is
                Rkg.Jobs (Idx).Snapshots_Degree := Snapshots_Degree;
                Rkg.Jobs (Idx).Req              := Req;
                Rkg.Jobs (Idx).State            := Submitted;
+               Rkg.Jobs (Idx).New_Key_ID       := Key_ID;
                return;
 
             when others =>
@@ -3065,6 +3067,15 @@ is
             end if;
 
             return Rkg.Jobs (Idx).Old_Key_ID;
+
+         when Read_Leaf_Node_For_Client_Pending =>
+
+            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim)
+            then
+               raise Program_Error;
+            end if;
+
+            return Rkg.Jobs (Idx).New_Key_ID;
 
          when others =>
 
