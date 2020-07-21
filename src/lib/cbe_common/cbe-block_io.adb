@@ -12,13 +12,15 @@ package body CBE.Block_IO
 with SPARK_Mode
 is
    function Invalid_Entry return Entry_Type
-   is (Orig_Tag   => Primitive.Tag_Invalid,
-       Prim       => Primitive.Invalid_Object,
-       Hash_Valid => False,
-       Hash       => (others => 0),
-       Req        => Request.Invalid_Object,
-       State      => Unused,
-       Key_ID     => Key_ID_Invalid);
+   is (
+     Orig_Tag       => Primitive.Tag_Invalid,
+     Prim           => Primitive.Invalid_Object,
+     Submitted_Prim => Primitive.Invalid_Object,
+     Hash_Valid     => False,
+     Hash           => (others => 0),
+     Req            => Request.Invalid_Object,
+     State          => Unused,
+     Key_ID         => Key_ID_Invalid);
 
    procedure Initialize_Object (Obj : out Object_Type)
    is
@@ -46,14 +48,14 @@ is
    begin
       for Idx in Obj.Entries'Range loop
          if Obj.Entries (Idx).State = Unused then
-            Obj.Entries (Idx) := (
-               Orig_Tag   => Primitive.Tag (Prim),
-               Prim       => Primitive.Copy_Valid_Object_New_Tag (Prim, Tag),
-               Hash_Valid => False,
-               Hash       => (others => 0),
-               Req        => Request.Invalid_Object,
-               State      => Pending,
-               Key_ID     => Key_ID_Type'First);
+
+            Obj.Entries (Idx).Orig_Tag   := Primitive.Tag (Prim);
+            Obj.Entries (Idx).Prim       :=
+               Primitive.Copy_Valid_Object_New_Tag (Prim, Tag);
+            Obj.Entries (Idx).Hash_Valid := False;
+            Obj.Entries (Idx).Hash       := (others => 0);
+            Obj.Entries (Idx).State      := Pending;
+            Obj.Entries (Idx).Key_ID     := Key_ID_Type'First;
 
             Obj.Used_Entries := Obj.Used_Entries + 1;
             return;
@@ -67,28 +69,26 @@ is
    --
    procedure Submit_Primitive_Req (
       Obj  : in out Object_Type;
-      Tag  :        Primitive.Tag_Type;
       Prim :        Primitive.Object_Type;
       Req  :        Request.Object_Type)
    is
    begin
-      for Idx in Obj.Entries'Range loop
-         if Obj.Entries (Idx).State = Unused then
-            Obj.Entries (Idx) := (
-               Orig_Tag   => Primitive.Tag (Prim),
-               Prim       => Primitive.Copy_Valid_Object_New_Tag (Prim, Tag),
-               Hash_Valid => False,
-               Hash       => (others => 0),
-               Req        => Req,
-               State      => Pending,
-               Key_ID     => Key_ID_Type'First);
 
+      for Idx in Obj.Entries'Range loop
+
+         if Obj.Entries (Idx).State = Unused then
+
+            Obj.Entries (Idx).Submitted_Prim := Prim;
+            Obj.Entries (Idx).Req := Req;
+            Obj.Entries (Idx).State := Submitted;
             Obj.Used_Entries := Obj.Used_Entries + 1;
-            raise Program_Error;
             return;
+
          end if;
+
       end loop;
       raise Program_Error;
+
    end Submit_Primitive_Req;
 
    procedure Submit_Primitive_Decrypt (
@@ -100,15 +100,15 @@ is
    begin
       for Idx in Obj.Entries'Range loop
          if Obj.Entries (Idx).State = Unused then
-            Obj.Entries (Idx) := (
-               Orig_Tag   => Primitive.Tag (Prim),
-               Prim       => Primitive.Copy_Valid_Object_New_Tag (
-                  Prim, Primitive.Tag_Decrypt),
-               Hash_Valid => True,
-               Hash       => Hash,
-               Req        => Request.Invalid_Object,
-               State      => Pending,
-               Key_ID     => Key_ID);
+
+            Obj.Entries (Idx).Orig_Tag   := Primitive.Tag (Prim);
+            Obj.Entries (Idx).Prim       :=
+               Primitive.Copy_Valid_Object_New_Tag (
+                  Prim, Primitive.Tag_Decrypt);
+            Obj.Entries (Idx).Hash_Valid := True;
+            Obj.Entries (Idx).Hash       := Hash;
+            Obj.Entries (Idx).State      := Pending;
+            Obj.Entries (Idx).Key_ID     := Key_ID;
 
             Obj.Used_Entries := Obj.Used_Entries + 1;
             return;
@@ -126,19 +126,18 @@ is
    begin
       for Idx in Obj.Entries'Range loop
          if Obj.Entries (Idx).State = Unused then
-            Obj.Entries (Idx) := (
-               Orig_Tag => Primitive.Tag (Prim),
-               Prim     => Primitive.Valid_Object_No_Pool_Idx (
-                  Op     => Primitive.Operation (Prim),
-                  Succ   => Primitive.Success (Prim),
-                  Tg     => Tag,
-                  Blk_Nr => Primitive.Block_Number (Prim),
-                  Idx    => Primitive.Index (Prim)),
-               State      => Pending,
-               Key_ID     => Key_ID_Invalid,
-               Req        => Request.Invalid_Object,
-               Hash_Valid => False,
-               Hash       => (others => 0));
+
+            Obj.Entries (Idx).Orig_Tag := Primitive.Tag (Prim);
+            Obj.Entries (Idx).Prim     := Primitive.Valid_Object_No_Pool_Idx (
+               Op     => Primitive.Operation (Prim),
+               Succ   => Primitive.Success (Prim),
+               Tg     => Tag,
+               Blk_Nr => Primitive.Block_Number (Prim),
+               Idx    => Primitive.Index (Prim));
+            Obj.Entries (Idx).State      := Pending;
+            Obj.Entries (Idx).Key_ID     := Key_ID_Invalid;
+            Obj.Entries (Idx).Hash_Valid := False;
+            Obj.Entries (Idx).Hash       := (others => 0);
 
             Data_Index       := Idx;
             Obj.Used_Entries := Obj.Used_Entries + 1;

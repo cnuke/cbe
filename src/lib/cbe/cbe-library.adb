@@ -2292,7 +2292,6 @@ is
 
                   Block_IO.Submit_Primitive_Req (
                      Obj.IO_Obj,
-                     Primitive.Tag_VBD_Rkg_Blk_IO,
                      Prim,
                      VBD_Rekeying.Peek_Generated_Req (Obj.VBD_Rkg, Prim));
 

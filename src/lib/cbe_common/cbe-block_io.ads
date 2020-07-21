@@ -72,7 +72,6 @@ is
    --
    procedure Submit_Primitive_Req (
       Obj  : in out Object_Type;
-      Tag  :        Primitive.Tag_Type;
       Prim :        Primitive.Object_Type;
       Req  :        Request.Object_Type);
 
@@ -208,16 +207,22 @@ is
 
 private
 
-   type Entry_State_Type is (Unused, Pending, In_Progress, Complete);
+   type Entry_State_Type is (
+      Unused,
+      Submitted,
+      Pending,
+      In_Progress,
+      Complete);
 
    type Entry_Type is record
-      Orig_Tag   : Primitive.Tag_Type;
-      Prim       : Primitive.Object_Type;
-      Hash       : Hash_Type;
-      Hash_Valid : Boolean;
-      State      : Entry_State_Type;
-      Key_ID     : Key_ID_Type;
-      Req        : Request.Object_Type;
+      Orig_Tag       : Primitive.Tag_Type;
+      Prim           : Primitive.Object_Type;
+      Hash           : Hash_Type;
+      Hash_Valid     : Boolean;
+      State          : Entry_State_Type;
+      Key_ID         : Key_ID_Type;
+      Req            : Request.Object_Type;
+      Submitted_Prim : Primitive.Object_Type;
    end record;
 
    type Entries_Type is array (Data_Index_Type'Range) of Entry_Type;
