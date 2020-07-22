@@ -425,6 +425,35 @@ is
    end Peek_Generated_Key_ID;
 
    --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type
+   is
+      Idx : constant Entries_Index_Type :=
+         Entries_Index_Type (Primitive.Index (Prim));
+   begin
+
+      case Obj.Entries (Idx).State is
+      when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
+
+         if not Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         return Obj.Entries (Idx).Req;
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
+
+   end Peek_Generated_Req;
+
+   --
    --  Drop_Generated_Primitive
    --
    procedure Drop_Generated_Primitive (

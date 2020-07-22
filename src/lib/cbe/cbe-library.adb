@@ -587,32 +587,76 @@ is
          Obj.Crypto_Obj, Crypto.Jobs_Index_Type (Data_Index), Data_Valid);
    end Supply_Crypto_Cipher_Data;
 
+   --
+   --  Crypto_Plain_Data_Required
+   --
    procedure Crypto_Plain_Data_Required (
       Obj        :     Object_Type;
       Req        : out Request.Object_Type;
       Data_Index : out Crypto.Cipher_Buffer_Index_Type)
    is
-      Idx  : Crypto.Jobs_Index_Type;
-      Prim : Primitive.Object_Type;
+      Prim : constant Primitive.Object_Type :=
+         Crypto.Peek_Generated_Crypto_Dev_Primitive (Obj.Crypto_Obj);
    begin
-      Crypto.Peek_Generated_Primitive (Obj.Crypto_Obj, Idx, Prim);
 
-      Data_Index := Crypto.Cipher_Buffer_Index_Type (Idx);
-      if not Primitive.Valid (Prim) or else
-         Primitive.Has_Tag_SB_Ctrl_Crypto_Add_Key (Prim) or else
-         Primitive.Operation (Prim) /= Read
-      then
+      if Primitive.Valid (Prim) then
+
+         case Primitive.Tag (Prim) is
+         when Primitive.Tag_Crypto_IO_Crypto_Dev_Decrypt =>
+
+            Data_Index :=
+               Crypto.Peek_Generated_Cipher_Buf_Idx (Obj.Crypto_Obj, Prim);
+
+            Req := Request.Valid_Object (
+               Op     => CBE.Read,
+               Succ   => False,
+               Blk_Nr => Primitive.Block_Number (Prim),
+               Off    => 0,
+               Cnt    => 1,
+               Key    =>
+                  Crypto.Peek_Generated_Key_ID_New (Obj.Crypto_Obj, Prim),
+               Tg     => 0);
+
+            Debug.Print_String ("YYY");
+
+         when others =>
+
+            Declare_Idx :
+            declare
+               Idx : Crypto.Jobs_Index_Type;
+               Prim_1 : Primitive.Object_Type;
+            begin
+
+               Crypto.Peek_Generated_Primitive (Obj.Crypto_Obj, Idx, Prim_1);
+
+               Data_Index := Crypto.Cipher_Buffer_Index_Type (Idx);
+               if not Primitive.Valid (Prim_1) or else
+                  Primitive.Has_Tag_SB_Ctrl_Crypto_Add_Key (Prim_1) or else
+                  Primitive.Operation (Prim_1) /= Read
+               then
+                  Req := Request.Invalid_Object;
+                  return;
+               end if;
+               Req := Request.Valid_Object (
+                  Op     => CBE.Read,
+                  Succ   => False,
+                  Blk_Nr => Primitive.Block_Number (Prim_1),
+                  Off    => 0,
+                  Cnt    => 1,
+                  Key    => Crypto.Peek_Generated_Key_ID (Obj.Crypto_Obj, Idx),
+                  Tg     => 0);
+
+            end Declare_Idx;
+
+         end case;
+
+      else
+
+         Data_Index := Crypto.Cipher_Buffer_Index_Type'First;
          Req := Request.Invalid_Object;
-         return;
+
       end if;
-      Req := Request.Valid_Object (
-         Op     => CBE.Read,
-         Succ   => False,
-         Blk_Nr => Primitive.Block_Number (Prim),
-         Off    => 0,
-         Cnt    => 1,
-         Key    => Crypto.Peek_Generated_Key_ID (Obj.Crypto_Obj, Idx),
-         Tg     => 0);
+
    end Crypto_Plain_Data_Required;
 
    procedure Crypto_Plain_Data_Requested (
@@ -3137,6 +3181,8 @@ is
       Progress          : in out Boolean)
    is
    begin
+      Crypto.Execute (Obj.Crypto_Obj, Progress);
+
       --
       --  Only writes primitives (encrypted Data) are handled here,
       --  read primitives (decrypred Data) are handled in 'give_Read_Data'.
@@ -3259,18 +3305,19 @@ is
 
                Declare_Cipher_Buf_Idx :
                declare
-                  Idx : Crypto.Jobs_Index_Type;
+                  Idx : Crypto.Cipher_Buffer_Index_Type;
                begin
 
-                  Crypto.Submit_Primitive (
+                  Crypto.Submit_Primitive_Req_Key_ID (
                      Obj.Crypto_Obj,
                      Prim,
+                     Block_IO.Peek_Generated_Req (Obj.IO_Obj, Prim),
                      Block_IO.Peek_Generated_Key_ID (Obj.IO_Obj, Prim),
                      Idx);
 
-                  Crypto_Cipher_Buf (Idx) :=
-                     IO_Buf (Block_IO.Peek_Generated_Data_Index (
-                        Obj.IO_Obj, Prim));
+                  Crypto_Cipher_Buf (Crypto.Jobs_Index_Type (Idx)) :=
+                     IO_Buf (
+                        Block_IO.Peek_Generated_Data_Index (Obj.IO_Obj, Prim));
 
                end Declare_Cipher_Buf_Idx;
 

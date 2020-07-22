@@ -332,6 +332,11 @@ is
    return Boolean
    is (Obj.Tag = Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data);
 
+   function Has_Tag_Crypto_IO_Crypto_Dev_Decrypt (
+      Obj : Object_Type)
+   return Boolean
+   is (Obj.Tag = Tag_Crypto_IO_Crypto_Dev_Decrypt);
+
    function Has_Tag_VBD_Rkg_Blk_IO (Obj : Object_Type) return Boolean
    is (Obj.Tag = Tag_VBD_Rkg_Blk_IO);
 

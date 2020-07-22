@@ -192,6 +192,14 @@ is
    return Key_ID_Type;
 
    --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type;
+
+   --
    --  Discard given generated primitive
    --
    --  This method must only be called after 'peek_generated_io_primitive'

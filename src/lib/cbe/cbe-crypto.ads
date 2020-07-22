@@ -77,10 +77,11 @@ is
    --  Submit_Primitive_Req_Key_ID
    --
    procedure Submit_Primitive_Req_Key_ID (
-      Obj    : in out Object_Type;
-      Prim   :        Primitive.Object_Type;
-      Req    :        Request.Object_Type;
-      Key_ID :        Key_ID_Type);
+      Obj            : in out Object_Type;
+      Prim           :        Primitive.Object_Type;
+      Req            :        Request.Object_Type;
+      Key_ID         :        Key_ID_Type;
+      Cipher_Buf_Idx :    out Cipher_Buffer_Index_Type);
 
    --
    --  Submit_Completed_Primitive
@@ -100,12 +101,34 @@ is
       Prim    : out Primitive.Object_Type);
 
    --
+   --  Peek_Generated_Crypto_Dev_Primitive
+   --
+   function Peek_Generated_Crypto_Dev_Primitive (Obj : Object_Type)
+   return Primitive.Object_Type;
+
+   --
    --  Peek_Generated_Key_ID
    --
    function Peek_Generated_Key_ID (
       Obj     : Object_Type;
       Job_Idx : Jobs_Index_Type)
    return Key_ID_Type;
+
+   --
+   --  Peek_Generated_Key_ID_New
+   --
+   function Peek_Generated_Key_ID_New (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Key_ID_Type;
+
+   --
+   --  Peek_Generated_Cipher_Buf_Idx
+   --
+   function Peek_Generated_Cipher_Buf_Idx (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Cipher_Buffer_Index_Type;
 
    --
    --  Peek_Generated_Key
@@ -121,6 +144,13 @@ is
    procedure Drop_Generated_Primitive (
       Obj     : in out Object_Type;
       Job_Idx :        Jobs_Index_Type);
+
+   --
+   --  Execute
+   --
+   procedure Execute (
+      Obj      : in out Object_Type;
+      Progress : in out Boolean);
 
    --
    --  Peek_Completed_Primitive
@@ -154,22 +184,36 @@ private
    type Job_State_Type is (
       Invalid,
       DSCD_Submitted,
+
+      DSCD_Decrypt_Data_Pending,
+      DSCD_Decrypt_Data_In_Progress,
+      DSCD_Decrypt_Data_Completed,
+
       Pending,
       In_Progress,
       Complete);
 
    type Job_Type is record
-      State : Job_State_Type;
-      Prim  : Primitive.Object_Type;
-      Req   : Request.Object_Type;
-      Key   : Key_Plaintext_Type;
+      State          : Job_State_Type;
+      Prim           : Primitive.Object_Type;
+      Submitted_Prim : Primitive.Object_Type;
+      Generated_Prim : Primitive.Object_Type;
+      Req            : Request.Object_Type;
+      Key            : Key_Plaintext_Type;
    end record;
 
    type Jobs_Type is array (Jobs_Index_Type) of Job_Type;
 
    type Object_Type is record
-      Jobs             : Jobs_Type;
-      Execute_Progress : Boolean;
+      Jobs : Jobs_Type;
    end record;
+
+   --
+   --  Execute_Decrypt_And_Supply_Client_Data
+   --
+   procedure Execute_Decrypt_And_Supply_Client_Data (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      Progress : in out Boolean);
 
 end CBE.Crypto;
