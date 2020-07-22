@@ -3259,7 +3259,7 @@ is
 
                Declare_Cipher_Buf_Idx :
                declare
-                  Idx : Crypto.Item_Index_Type;
+                  Idx : Crypto.Jobs_Index_Type;
                begin
 
                   Crypto.Submit_Primitive (

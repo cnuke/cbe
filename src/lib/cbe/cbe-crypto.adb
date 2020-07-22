@@ -21,6 +21,7 @@ is
          others => (
             State => Invalid,
             Prim => Primitive.Invalid_Object,
+            Req => Request.Invalid_Object,
             Key => Key_Plaintext_Invalid)),
 
       Execute_Progress => False);
@@ -86,6 +87,44 @@ is
       raise Program_Error;
 
    end Submit_Primitive_Key_ID;
+
+   --
+   --  Submit_Primitive_Req_Key_ID
+   --
+   procedure Submit_Primitive_Req_Key_ID (
+      Obj    : in out Object_Type;
+      Prim   :        Primitive.Object_Type;
+      Req    :        Request.Object_Type;
+      Key_ID :        Key_ID_Type)
+   is
+   begin
+
+      For_Each_Job :
+      for Job_Idx in Obj.Jobs'Range loop
+
+         if Obj.Jobs (Job_Idx).State = Invalid then
+
+            case Primitive.Tag (Prim) is
+            when Primitive.Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data =>
+
+               Obj.Jobs (Job_Idx).State := DSCD_Submitted;
+               Obj.Jobs (Job_Idx).Prim := Prim;
+               Obj.Jobs (Job_Idx).Req := Req;
+               Obj.Jobs (Job_Idx).Key.ID := Key_ID;
+               return;
+
+            when others =>
+
+               raise Program_Error;
+
+            end case;
+
+         end if;
+
+      end loop For_Each_Job;
+      raise Program_Error;
+
+   end Submit_Primitive_Req_Key_ID;
 
    --
    --  Submit_Primitive

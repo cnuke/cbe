@@ -9,6 +9,7 @@
 pragma Ada_2012;
 
 with CBE.Primitive;
+with CBE.Request;
 
 package CBE.Crypto
 with SPARK_Mode
@@ -70,6 +71,15 @@ is
    procedure Submit_Primitive_Key_ID (
       Obj    : in out Object_Type;
       Prim   :        Primitive.Object_Type;
+      Key_ID :        Key_ID_Type);
+
+   --
+   --  Submit_Primitive_Req_Key_ID
+   --
+   procedure Submit_Primitive_Req_Key_ID (
+      Obj    : in out Object_Type;
+      Prim   :        Primitive.Object_Type;
+      Req    :        Request.Object_Type;
       Key_ID :        Key_ID_Type);
 
    --
@@ -141,11 +151,17 @@ is
 
 private
 
-   type Job_State_Type is (Invalid, Pending, In_Progress, Complete);
+   type Job_State_Type is (
+      Invalid,
+      DSCD_Submitted,
+      Pending,
+      In_Progress,
+      Complete);
 
    type Job_Type is record
       State : Job_State_Type;
       Prim  : Primitive.Object_Type;
+      Req   : Request.Object_Type;
       Key   : Key_Plaintext_Type;
    end record;
 
