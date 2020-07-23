@@ -232,59 +232,33 @@ is
          Obj.IO_Obj, Data_Index, Success);
    end IO_Request_Completed;
 
+   --
+   --  Client_Data_Ready
+   --
    procedure Client_Data_Ready (
       Obj : in out Object_Type;
       Req :    out Request.Object_Type)
    is
    begin
-      Req := Request.Invalid_Object;
 
-      if Primitive.Valid (Obj.Wait_For_Front_End.Prim) then
-         return;
-      end if;
-
-      --
-      --  When it was a read Request, we need the location to
-      --  where the Crypto should copy the decrypted data.
-      --
+      Declare_Prim :
       declare
          Prim : constant Primitive.Object_Type :=
-            Crypto.Peek_Completed_Primitive (Obj.Crypto_Obj);
+            Crypto.Peek_Generated_Client_Primitive (Obj.Crypto_Obj);
       begin
+         if Primitive.Valid (Prim) then
 
-         --
-         --  FIXME
-         --  By default, primitives of the crypto module are treated in a
-         --  special way as the initial integration of the module was done
-         --  breaking several principles of the modular design of the CBE.
-         --  However, newer modules (like VBD Rekeying) use the crypto
-         --  module in a simple server-client fashion for
-         --  encryption/decryption requests, as originally intended. We
-         --  filter those out through their tags.
-         --
-         case Primitive.Tag (Prim) is
-         when Primitive.Tag_VBD_Rkg_Crypto_Decrypt |
-              Primitive.Tag_VBD_Rkg_Crypto_Encrypt
-         =>
+            Debug.Print_String ("Peek_Generated_Req");
+            Req := Crypto.Peek_Generated_Req (Obj.Crypto_Obj, Prim);
 
-            raise Program_Error;
+         else
 
-         when others =>
+            Req := Request.Invalid_Object;
 
-            if
-               Primitive.Valid (Prim) and then
-               Primitive.Operation (Prim) = Read
-            then
-               Start_Waiting_For_Front_End (
-                  Obj, Prim, Event_Obtain_Client_Data);
+         end if;
 
-               Req := Obj.Wait_For_Front_End.Req;
-               return;
-            end if;
+      end Declare_Prim;
 
-         end case;
-
-      end;
    end Client_Data_Ready;
 
    --
@@ -617,8 +591,6 @@ is
                   Crypto.Peek_Generated_Key_ID_New (Obj.Crypto_Obj, Prim),
                Tg     => 0);
 
-            Debug.Print_String ("YYY");
-
          when others =>
 
             Declare_Idx :
@@ -659,6 +631,9 @@ is
 
    end Crypto_Plain_Data_Required;
 
+   --
+   --  Crypto_Plain_Data_Requested
+   --
    procedure Crypto_Plain_Data_Requested (
       Obj        : in out Library.Object_Type;
       Data_Index :        Crypto.Cipher_Buffer_Index_Type)
@@ -668,6 +643,9 @@ is
          Obj.Crypto_Obj, Crypto.Jobs_Index_Type (Data_Index));
    end Crypto_Plain_Data_Requested;
 
+   --
+   --  Supply_Crypto_Plain_Data
+   --
    procedure Supply_Crypto_Plain_Data (
       Obj        : in out Object_Type;
       Data_Index :        Crypto.Plain_Buffer_Index_Type;

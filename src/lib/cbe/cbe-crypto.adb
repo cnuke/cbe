@@ -251,6 +251,33 @@ is
    end Peek_Generated_Crypto_Dev_Primitive;
 
    --
+   --  Peek_Generated_Client_Primitive
+   --
+   function Peek_Generated_Client_Primitive (Obj : Object_Type)
+   return Primitive.Object_Type
+   is
+   begin
+
+      For_Each_Job :
+      for Idx in Obj.Jobs'Range loop
+
+         case Obj.Jobs (Idx).State is
+         when DSCD_Supply_Data_Pending =>
+
+            return Obj.Jobs (Idx).Generated_Prim;
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop For_Each_Job;
+      return Primitive.Invalid_Object;
+
+   end Peek_Generated_Client_Primitive;
+
+   --
    --  Peek_Generated_Cipher_Buf_Idx
    --
    function Peek_Generated_Cipher_Buf_Idx (
@@ -282,6 +309,39 @@ is
       raise Program_Error;
 
    end Peek_Generated_Cipher_Buf_Idx;
+
+   --
+   --  Peek_Generated_Plain_Buf_Idx
+   --
+   function Peek_Generated_Plain_Buf_Idx (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Plain_Buffer_Index_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      if Obj.Jobs (Idx).State /= Invalid then
+
+         case Obj.Jobs (Idx).State is
+         when DSCD_Supply_Data_Pending =>
+
+            if Primitive.Equal (Prim, Obj.Jobs (Idx).Generated_Prim) then
+               return Plain_Buffer_Index_Type (Idx);
+            end if;
+            raise Program_Error;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      end if;
+      raise Program_Error;
+
+   end Peek_Generated_Plain_Buf_Idx;
 
    --
    --  Peek_Generated_Key_ID_New
@@ -317,6 +377,39 @@ is
    end Peek_Generated_Key_ID_New;
 
    --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      if Obj.Jobs (Idx).State /= Invalid then
+
+         case Obj.Jobs (Idx).State is
+         when DSCD_Supply_Data_Pending =>
+
+            if Primitive.Equal (Prim, Obj.Jobs (Idx).Generated_Prim) then
+               return Obj.Jobs (Idx).Req;
+            end if;
+            raise Program_Error;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      end if;
+      raise Program_Error;
+
+   end Peek_Generated_Req;
+
+   --
    --  Execute
    --
    procedure Execute (
@@ -333,7 +426,10 @@ is
             DSCD_Submitted |
             DSCD_Decrypt_Data_Pending |
             DSCD_Decrypt_Data_In_Progress |
-            DSCD_Decrypt_Data_Completed
+            DSCD_Decrypt_Data_Completed |
+            DSCD_Supply_Data_Pending |
+            DSCD_Supply_Data_In_Progress |
+            DSCD_Supply_Data_Completed
          =>
 
             Execute_Decrypt_And_Supply_Client_Data (
@@ -362,6 +458,7 @@ is
       case Job.State is
       when DSCD_Submitted =>
 
+         Debug.Print_String ("DSCD_Submitted");
          Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
             Op     => Read,
             Succ   => False,
@@ -374,7 +471,31 @@ is
 
       when DSCD_Decrypt_Data_Completed =>
 
-         raise Program_Error;
+         if not Primitive.Success (Job.Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         Debug.Print_String ("DSCD_Decrypt_Data_Completed");
+         Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+            Op     => Read,
+            Succ   => False,
+            Tg     => Primitive.Tag_Crypto_IO_Client_Supply_Data,
+            Blk_Nr => Primitive.Block_Number (Job.Submitted_Prim),
+            Idx    => Primitive.Index_Type (Job_Idx));
+
+         Job.State := DSCD_Supply_Data_Pending;
+         Progress := True;
+
+      when DSCD_Supply_Data_Completed =>
+
+         if not Primitive.Success (Job.Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         Debug.Print_String ("DSCD_Supply_Data_Completed");
+         Primitive.Success (Job.Submitted_Prim, True);
+         Job.State := Complete;
+         Progress := True;
 
       when others =>
 
@@ -393,10 +514,26 @@ is
    is
    begin
 
-      if Obj.Jobs (Job_Idx).State /= Pending then
+      case Obj.Jobs (Job_Idx).State is
+      when Pending =>
+
+         Obj.Jobs (Job_Idx).State := In_Progress;
+
+      when DSCD_Decrypt_Data_Pending =>
+
+         Debug.Print_String ("DSCD_Drop1");
+         Obj.Jobs (Job_Idx).State := DSCD_Decrypt_Data_In_Progress;
+
+      when DSCD_Supply_Data_Pending =>
+
+         Debug.Print_String ("DSCD_Drop2");
+         Obj.Jobs (Job_Idx).State := DSCD_Supply_Data_In_Progress;
+
+      when others =>
+
          raise Program_Error;
-      end if;
-      Obj.Jobs (Job_Idx).State := In_Progress;
+
+      end case;
 
    end Drop_Generated_Primitive;
 
@@ -483,12 +620,29 @@ is
    is
    begin
 
-      if Obj.Jobs (Job_Idx).State /= In_Progress then
-         raise Program_Error;
-      end if;
+      case Obj.Jobs (Job_Idx).State is
+      when In_Progress =>
 
-      Obj.Jobs (Job_Idx).State := Complete;
-      Primitive.Success (Obj.Jobs (Job_Idx).Prim, Success);
+         Obj.Jobs (Job_Idx).State := Complete;
+         Primitive.Success (Obj.Jobs (Job_Idx).Prim, Success);
+
+      when DSCD_Decrypt_Data_In_Progress =>
+
+         Debug.Print_String ("DSCD_Mark1");
+         Obj.Jobs (Job_Idx).State := DSCD_Decrypt_Data_Completed;
+         Primitive.Success (Obj.Jobs (Job_Idx).Generated_Prim, Success);
+
+      when DSCD_Supply_Data_In_Progress =>
+
+         Debug.Print_String ("DSCD_Mark2");
+         Obj.Jobs (Job_Idx).State := DSCD_Supply_Data_Completed;
+         Primitive.Success (Obj.Jobs (Job_Idx).Generated_Prim, Success);
+
+      when others =>
+
+         raise Program_Error;
+
+      end case;
 
    end Mark_Completed_Primitive;
 

@@ -107,6 +107,12 @@ is
    return Primitive.Object_Type;
 
    --
+   --  Peek_Generated_Client_Primitive
+   --
+   function Peek_Generated_Client_Primitive (Obj : Object_Type)
+   return Primitive.Object_Type;
+
+   --
    --  Peek_Generated_Key_ID
    --
    function Peek_Generated_Key_ID (
@@ -129,6 +135,22 @@ is
       Obj  : Object_Type;
       Prim : Primitive.Object_Type)
    return Cipher_Buffer_Index_Type;
+
+   --
+   --  Peek_Generated_Plain_Buf_Idx
+   --
+   function Peek_Generated_Plain_Buf_Idx (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Plain_Buffer_Index_Type;
+
+   --
+   --  Peek_Generated_Req
+   --
+   function Peek_Generated_Req (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Request.Object_Type;
 
    --
    --  Peek_Generated_Key
@@ -188,6 +210,10 @@ private
       DSCD_Decrypt_Data_Pending,
       DSCD_Decrypt_Data_In_Progress,
       DSCD_Decrypt_Data_Completed,
+
+      DSCD_Supply_Data_Pending,
+      DSCD_Supply_Data_In_Progress,
+      DSCD_Supply_Data_Completed,
 
       Pending,
       In_Progress,
