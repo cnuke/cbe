@@ -252,7 +252,6 @@ is
          if Primitive.Valid (Prim) and then
             Primitive.Has_Tag_Crypto_IO_Client_Supply_Data (Prim)
          then
-            Debug.Print_String ("Client_Transfer_Read_Data_Required1");
 
             Req := Crypto.Peek_Generated_Req (Obj.Crypto_Obj, Prim);
             VBA := Crypto.Peek_Generated_VBA (Obj.Crypto_Obj, Prim);
@@ -279,7 +278,6 @@ is
       Plain_Buf_Idx :        Crypto.Plain_Buffer_Index_Type)
    is
    begin
-      Debug.Print_String ("Client_Transfer_Read_Data_In_Progress1");
       Crypto.Drop_Generated_Primitive_New (
          Obj.Crypto_Obj, Crypto.Jobs_Index_Type (Plain_Buf_Idx));
 

@@ -7,7 +7,6 @@
 --
 
 pragma Ada_2012;
-with CBE.Debug;
 
 package body CBE.Crypto
 with SPARK_Mode
@@ -111,7 +110,6 @@ is
             case Primitive.Tag (Prim) is
             when Primitive.Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data =>
 
-               Debug.Print_String ("DSCD_Submitted");
                Obj.Jobs (Job_Idx).State := DSCD_Submitted;
                Obj.Jobs (Job_Idx).Submitted_Prim := Prim;
                Obj.Jobs (Job_Idx).Req := Req;
@@ -502,7 +500,6 @@ is
             Blk_Nr => Primitive.Block_Number (Job.Submitted_Prim),
             Idx    => Primitive.Index_Type (Job_Idx));
 
-         Debug.Print_String ("DSCD_Decrypt_Data_Pending");
          Job.State := DSCD_Decrypt_Data_Pending;
          Progress := True;
 
@@ -519,7 +516,6 @@ is
             Blk_Nr => Primitive.Block_Number (Job.Submitted_Prim),
             Idx    => Primitive.Index_Type (Job_Idx));
 
-         Debug.Print_String ("DSCD_Supply_Data_Pending");
          Job.State := DSCD_Supply_Data_Pending;
          Progress := True;
 
@@ -529,7 +525,6 @@ is
             raise Program_Error;
          end if;
 
-         Debug.Print_String ("DSCD_Completed");
          Primitive.Success (Job.Submitted_Prim, True);
          Job.State := DSCD_Completed;
          Progress := True;
@@ -574,14 +569,16 @@ is
    begin
 
       case Obj.Jobs (Job_Idx).State is
+      when Pending =>
+
+         Obj.Jobs (Job_Idx).State := In_Progress;
+
       when DSCD_Decrypt_Data_Pending =>
 
-         Debug.Print_String ("DSCD_Decrypt_Data_In_Progress");
          Obj.Jobs (Job_Idx).State := DSCD_Decrypt_Data_In_Progress;
 
       when DSCD_Supply_Data_Pending =>
 
-         Debug.Print_String ("DSCD_Supply_Data_In_Progress");
          Obj.Jobs (Job_Idx).State := DSCD_Supply_Data_In_Progress;
 
       when others =>
@@ -714,7 +711,6 @@ is
 
       when DSCD_Decrypt_Data_In_Progress =>
 
-         Debug.Print_String ("DSCD_Decrypt_Data_Completed");
          Obj.Jobs (Job_Idx).State := DSCD_Decrypt_Data_Completed;
          Primitive.Success (Obj.Jobs (Job_Idx).Generated_Prim, Success);
 
@@ -740,7 +736,6 @@ is
       case Obj.Jobs (Job_Idx).State is
       when DSCD_Supply_Data_In_Progress =>
 
-         Debug.Print_String ("DSCD_Supply_Data_Completed");
          Obj.Jobs (Job_Idx).State := DSCD_Supply_Data_Completed;
          Primitive.Success (Obj.Jobs (Job_Idx).Generated_Prim, Success);
 

@@ -8,8 +8,6 @@
 
 pragma Ada_2012;
 
-with CBE.Debug;
-
 package body CBE.Block_IO
 with SPARK_Mode
 is
@@ -87,7 +85,6 @@ is
             case Primitive.Tag (Prim) is
             when Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
 
-               Debug.Print_String ("Read_Client_Data_Submitted");
                Obj.Entries (Idx).Submitted_Prim := Prim;
                Obj.Entries (Idx).Req := Req;
                Obj.Entries (Idx).VBA := VBA;
@@ -285,6 +282,7 @@ is
             Primitive.Equal (Prim, Obj.Entries (Idx).Submitted_Prim)
          then
             Obj.Entries (Idx).State := Unused;
+            Obj.Used_Entries := Obj.Used_Entries - 1;
             return;
          end if;
       end loop Find_Corresponding_Job;
@@ -532,9 +530,6 @@ is
          when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
 
             if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
-
-               Debug.Print_String (
-                  "Read_Client_Data_Decrypt_And_Supply_Data_In_Progress");
                Obj.Entries (Idx).State :=
                   Read_Client_Data_Decrypt_And_Supply_Data_In_Progress;
                return;
@@ -617,7 +612,6 @@ is
       when Read_Client_Data_Read_Data_In_Progress =>
 
          Primitive.Success (Obj.Entries (Data_Idx).Generated_Prim, Success);
-         Debug.Print_String ("Read_Client_Data_Read_Data_Completed");
          Obj.Entries (Data_Idx).State := Read_Client_Data_Read_Data_Completed;
 
       when others =>
@@ -645,9 +639,6 @@ is
 
             if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
                Obj.Entries (Idx).Generated_Prim := Prim;
-
-               Debug.Print_String (
-                  "Read_Client_Data_Decrypt_And_Supply_Data_Completed");
                Obj.Entries (Idx).State :=
                   Read_Client_Data_Decrypt_And_Supply_Data_Completed;
                return;
@@ -685,7 +676,6 @@ is
             Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
             Idx    => Primitive.Index_Type (Entry_Idx));
 
-         Debug.Print_String ("Read_Client_Data_Read_Data_Pending");
          Entr.State := Read_Client_Data_Read_Data_Pending;
          Progress := True;
 
@@ -703,8 +693,6 @@ is
             Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
             Idx    => Primitive.Index_Type (Entry_Idx));
 
-         Debug.Print_String (
-            "Read_Client_Data_Decrypt_And_Supply_Data_Pending");
          Entr.State := Read_Client_Data_Decrypt_And_Supply_Data_Pending;
          Progress := True;
 
@@ -714,7 +702,6 @@ is
             raise Program_Error;
          end if;
 
-         Debug.Print_String ("Read_Client_Data_Completed");
          Primitive.Success (Entr.Submitted_Prim, True);
          Entr.State := Read_Client_Data_Completed;
          Progress := True;
