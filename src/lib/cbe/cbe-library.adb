@@ -233,11 +233,13 @@ is
    end IO_Request_Completed;
 
    --
-   --  Client_Data_Ready
+   --  Client_Transfer_Read_Data_Required
    --
-   procedure Client_Data_Ready (
-      Obj : in out Object_Type;
-      Req :    out Request.Object_Type)
+   procedure Client_Transfer_Read_Data_Required (
+      Obj           : in out Object_Type;
+      Req           :    out Request.Object_Type;
+      VBA           :    out Virtual_Block_Address_Type;
+      Plain_Buf_Idx :    out Crypto.Plain_Buffer_Index_Type)
    is
    begin
 
@@ -246,20 +248,56 @@ is
          Prim : constant Primitive.Object_Type :=
             Crypto.Peek_Generated_Client_Primitive (Obj.Crypto_Obj);
       begin
-         if Primitive.Valid (Prim) then
 
-            Debug.Print_String ("Peek_Generated_Req");
+         if Primitive.Valid (Prim) and then
+            Primitive.Has_Tag_Crypto_IO_Client_Supply_Data (Prim)
+         then
+            Debug.Print_String ("Client_Transfer_Read_Data_Required1");
+
             Req := Crypto.Peek_Generated_Req (Obj.Crypto_Obj, Prim);
+            VBA := Crypto.Peek_Generated_VBA (Obj.Crypto_Obj, Prim);
+            Plain_Buf_Idx :=
+               Crypto.Peek_Generated_Plain_Buf_Idx (Obj.Crypto_Obj, Prim);
 
          else
 
             Req := Request.Invalid_Object;
+            VBA := Virtual_Block_Address_Type'First;
+            Plain_Buf_Idx := Crypto.Plain_Buffer_Index_Type'First;
 
          end if;
 
       end Declare_Prim;
 
-   end Client_Data_Ready;
+   end Client_Transfer_Read_Data_Required;
+
+   --
+   --  Client_Transfer_Read_Data_In_Progress
+   --
+   procedure Client_Transfer_Read_Data_In_Progress (
+      Obj           : in out Object_Type;
+      Plain_Buf_Idx :        Crypto.Plain_Buffer_Index_Type)
+   is
+   begin
+      Debug.Print_String ("Client_Transfer_Read_Data_In_Progress1");
+      Crypto.Drop_Generated_Primitive_New (
+         Obj.Crypto_Obj, Crypto.Jobs_Index_Type (Plain_Buf_Idx));
+
+   end Client_Transfer_Read_Data_In_Progress;
+
+   --
+   --  Client_Transfer_Read_Data_Completed
+   --
+   procedure Client_Transfer_Read_Data_Completed (
+      Obj           : in out Object_Type;
+      Plain_Buf_Idx :        Crypto.Plain_Buffer_Index_Type;
+      Success       :        Boolean)
+   is
+   begin
+      Crypto.Mark_Generated_Primitive_Complete (
+         Obj.Crypto_Obj, Plain_Buf_Idx, Success);
+
+   end Client_Transfer_Read_Data_Completed;
 
    --
    --  For now there can be only one Request pending.
@@ -277,42 +315,9 @@ is
       return Primitive.Index (Obj.Wait_For_Front_End.Prim);
    end Client_Data_Index;
 
-   procedure Obtain_Client_Data (
-      Obj              : in out Object_Type;
-      Req              :        Request.Object_Type;
-      Data_Index       :    out Crypto.Plain_Buffer_Index_Type;
-      Data_Index_Valid :    out Boolean)
-   is
-      Prim  : constant Primitive.Object_Type := Obj.Wait_For_Front_End.Prim;
-      Event : constant Event_Type            := Obj.Wait_For_Front_End.Event;
-   begin
-      Data_Index_Valid := False;
-      Data_Index       := Crypto.Plain_Buffer_Index_Type'First;
-
-      if Front_End_Busy_With_Other_Request (Obj, Req) or else
-         Event /= Event_Obtain_Client_Data
-      then
-         return;
-      end if;
-
-      Data_Index := Crypto.Plain_Buffer_Index_Type (
-         Crypto.Data_Index (Obj.Crypto_Obj, Prim));
-
-      Data_Index_Valid := True;
-      Crypto.Drop_Completed_Primitive (Obj.Crypto_Obj);
-      Request_Pool.Mark_Generated_Primitive_Complete (
-         Obj.Request_Pool_Obj,
-         Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)),
-         Primitive.Success (Prim));
-
-      pragma Debug (Debug.Print_String (
-         "========> Request_Pool.Mark_Completed_Primitive: "
-         & Primitive.To_String (Prim)));
-
-      Obj.Wait_For_Front_End := Wait_For_Event_Invalid;
-
-   end Obtain_Client_Data;
-
+   --
+   --  Client_Data_Required
+   --
    procedure Client_Data_Required (
       Obj : in out Object_Type;
       Req :    out Request.Object_Type)
@@ -635,12 +640,13 @@ is
    --  Crypto_Plain_Data_Requested
    --
    procedure Crypto_Plain_Data_Requested (
-      Obj        : in out Library.Object_Type;
-      Data_Index :        Crypto.Cipher_Buffer_Index_Type)
+      Obj            : in out Library.Object_Type;
+      Cipher_Buf_Idx :        Crypto.Cipher_Buffer_Index_Type)
    is
    begin
-      Crypto.Drop_Generated_Primitive (
-         Obj.Crypto_Obj, Crypto.Jobs_Index_Type (Data_Index));
+      Crypto.Drop_Generated_Primitive_New (Obj.Crypto_Obj,
+         Crypto.Jobs_Index_Type (Cipher_Buf_Idx));
+
    end Crypto_Plain_Data_Requested;
 
    --
@@ -2319,10 +2325,11 @@ is
 
                when Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
 
-                  Block_IO.Submit_Primitive_Req_Key_ID (
+                  Block_IO.Submit_Primitive_Client_Data (
                      Obj.IO_Obj,
                      Prim,
                      VBD_Rekeying.Peek_Generated_Req (Obj.VBD_Rkg, Prim),
+                     VBD_Rekeying.Peek_Generated_VBA (Obj.VBD_Rkg, Prim),
                      VBD_Rekeying.Peek_Generated_Crypto_Key_ID (
                         Obj.VBD_Rkg, Prim));
 
@@ -2701,6 +2708,7 @@ is
 
             case Primitive.Tag (Prim) is
             when
+               Primitive.Tag_Pool_SB_Ctrl_Read_VBA |
                Primitive.Tag_Pool_SB_Ctrl_Sync |
                Primitive.Tag_Pool_SB_Ctrl_Init_Rekey |
                Primitive.Tag_Pool_SB_Ctrl_Discard_Snap |
@@ -3185,12 +3193,20 @@ is
             --
             case Primitive.Tag (Prim) is
             when Primitive.Tag_SB_Ctrl_Crypto_Add_Key |
-                 Primitive.Tag_SB_Ctrl_Crypto_Remove_Key =>
+                 Primitive.Tag_SB_Ctrl_Crypto_Remove_Key
+            =>
 
                Superblock_Control.Mark_Generated_Prim_Complete (
                   Obj.SB_Ctrl, Prim);
 
                Crypto.Drop_Completed_Primitive (Obj.Crypto_Obj);
+               Progress := True;
+
+            when Primitive.Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data =>
+
+               Block_IO.Mark_Generated_Primitive_Complete_New (
+                  Obj.IO_Obj, Prim);
+               Crypto.Drop_Completed_Primitive_New (Obj.Crypto_Obj, Prim);
                Progress := True;
 
             when Primitive.Tag_VBD_Rkg_Crypto_Decrypt =>
@@ -3286,10 +3302,11 @@ is
                   Idx : Crypto.Cipher_Buffer_Index_Type;
                begin
 
-                  Crypto.Submit_Primitive_Req_Key_ID (
+                  Crypto.Submit_Primitive_Client_Data (
                      Obj.Crypto_Obj,
                      Prim,
                      Block_IO.Peek_Generated_Req (Obj.IO_Obj, Prim),
+                     Block_IO.Peek_Generated_VBA (Obj.IO_Obj, Prim),
                      Block_IO.Peek_Generated_Key_ID (Obj.IO_Obj, Prim),
                      Idx);
 
@@ -3299,9 +3316,8 @@ is
 
                end Declare_Cipher_Buf_Idx;
 
-               Block_IO.Drop_Generated_Primitive (Obj.IO_Obj, Prim);
+               Block_IO.Drop_Generated_Primitive_New (Obj.IO_Obj, Prim);
                Progress := True;
-               Debug.Print_String ("XXX");
 
             when others =>
 
@@ -3321,123 +3337,139 @@ is
          begin
             exit Loop_IO_Completed_Prims when not Primitive.Valid (Prim);
 
-            if not Primitive.Success (Prim) then
-               raise Program_Error;
-            end if;
+            case Primitive.Tag (Prim) is
+            when Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
 
-            Declare_Index_3 :
-            declare
-               Index : constant Block_IO.Data_Index_Type :=
-                  Block_IO.Peek_Completed_Data_Index (Obj.IO_Obj);
+               VBD_Rekeying.Mark_Generated_Prim_Completed (
+                  Obj.VBD_Rkg, Prim);
 
-               --
-               --  Whenever we cannot hand a successful primitive over
-               --  to the corresponding module, leave the loop but keep
-               --  the completed primitive so that it might be processed
-               --  next time.
-               --
-               Mod_Progress : Boolean := True;
-            begin
-               if Primitive.Has_Tag_Decrypt (Prim) then
+               Block_IO.Drop_Completed_Primitive_New (Obj.IO_Obj, Prim);
+               Progress := True;
 
-                  if not Crypto.Primitive_Acceptable (Obj.Crypto_Obj) then
-                     Mod_Progress := False;
-                  else
-                     Declare_Data :
-                     declare
-                        Data_Idx : Crypto.Jobs_Index_Type;
-                        SHA_Data : SHA256_4K.Data_Type;
-                        SHA_Hash : SHA256_4K.Hash_Type;
-                        CBE_Hash : Hash_Type;
-                     begin
-                        SHA256_4K_Data_From_CBE_Data (
-                           SHA_Data, IO_Buf (Index));
-                        SHA256_4K.Hash (SHA_Data, SHA_Hash);
-                        CBE_Hash_From_SHA256_4K_Hash (CBE_Hash, SHA_Hash);
-                        if CBE_Hash /=
-                           Block_IO.Peek_Completed_Hash (Obj.IO_Obj, Prim)
-                        then
-                           raise Program_Error;
-                        end if;
+            when others =>
 
-                        --
-                        --  Having to override the Tag is needed because of
-                        --  the way the Crypto module is hooked up in the
-                        --  overall Data flow. Since it is the one that
-                        --  acknowledges the primitive to the pool in the read
-                        --  case, we have to use the Tag the pool module uses.
-                        --
-                        Crypto.Submit_Primitive (
-                           Obj.Crypto_Obj,
-                           Primitive.Copy_Valid_Object_New_Tag (
-                              Prim,
-                              Block_IO.Peek_Completed_Tag (
-                                 Obj.IO_Obj, Prim)),
-                           Block_IO.Peek_Completed_Key_ID (
-                              Obj.IO_Obj, Prim),
-                           Data_Idx);
-
-                        Crypto_Cipher_Buf (Data_Idx) := IO_Buf (Index);
-
-                     end Declare_Data;
-                  end if;
-
-               elsif Primitive.Has_Tag_Cache_Blk_IO (Prim) then
-
-                  Declare_Slot_Idx :
-                  declare
-                     Slot_Idx : constant Cache.Slots_Index_Type :=
-                        Cache.Slots_Index_Type (Primitive.Index (Prim));
-                  begin
-                     if Primitive.Operation (Prim) = Read then
-                        Obj.Cache_Slots_Data (Slot_Idx) := IO_Buf (Index);
-                     end if;
-                     Cache.Mark_Generated_Primitive_Complete (
-                        Obj.Cache_Obj, Slot_Idx, Primitive.Success (Prim));
-
-                  end Declare_Slot_Idx;
-
-               elsif Primitive.Has_Tag_Write_Back (Prim) then
-                  Write_Back.Mark_Completed_IO_Primitive (
-                     Obj.Write_Back_Obj, Prim);
-
-               elsif Primitive.Has_Tag_SB_Ctrl_Blk_IO_Write_SB (Prim) then
-                  Superblock_Control.Mark_Generated_Prim_Complete (
-                     Obj.SB_Ctrl, Prim);
-
-               elsif Primitive.Has_Tag_SB_Ctrl_Blk_IO_Read_SB (Prim) then
-                  Superblock_Control.Mark_Generated_Prim_Complete_Blk_Data (
-                     Obj.SB_Ctrl, Prim, IO_Buf (Index));
-
-               elsif Primitive.Has_Tag_SB_Ctrl_Blk_IO_Sync (Prim) then
-                  Superblock_Control.Mark_Generated_Prim_Complete (
-                     Obj.SB_Ctrl, Prim);
-
-               elsif Primitive.Has_Tag_VBD_Rkg_Blk_IO (Prim) then
-
-                  case Primitive.Operation (Prim) is
-                  when Read =>
-
-                     VBD_Rekeying.Mark_Generated_Prim_Completed_Blk_Data (
-                        Obj.VBD_Rkg, Prim, IO_Buf (Index));
-
-                  when Write | Sync =>
-
-                     VBD_Rekeying.Mark_Generated_Prim_Completed (
-                        Obj.VBD_Rkg, Prim);
-
-                  end case;
-
-               else
+               if not Primitive.Success (Prim) then
                   raise Program_Error;
                end if;
-               exit Loop_IO_Completed_Prims when not Mod_Progress;
 
-            end Declare_Index_3;
-            Block_IO.Drop_Completed_Primitive (Obj.IO_Obj, Prim);
+               Declare_Index_3 :
+               declare
+                  Index : constant Block_IO.Data_Index_Type :=
+                     Block_IO.Peek_Completed_Data_Index (Obj.IO_Obj);
+
+                  --
+                  --  Whenever we cannot hand a successful primitive over
+                  --  to the corresponding module, leave the loop but keep
+                  --  the completed primitive so that it might be processed
+                  --  next time.
+                  --
+                  Mod_Progress : Boolean := True;
+               begin
+                  if Primitive.Has_Tag_Decrypt (Prim) then
+
+                     if not Crypto.Primitive_Acceptable (Obj.Crypto_Obj) then
+                        Mod_Progress := False;
+                     else
+                        Declare_Data :
+                        declare
+                           Data_Idx : Crypto.Jobs_Index_Type;
+                           SHA_Data : SHA256_4K.Data_Type;
+                           SHA_Hash : SHA256_4K.Hash_Type;
+                           CBE_Hash : Hash_Type;
+                        begin
+                           SHA256_4K_Data_From_CBE_Data (
+                              SHA_Data, IO_Buf (Index));
+                           SHA256_4K.Hash (SHA_Data, SHA_Hash);
+                           CBE_Hash_From_SHA256_4K_Hash (CBE_Hash, SHA_Hash);
+                           if CBE_Hash /=
+                              Block_IO.Peek_Completed_Hash (Obj.IO_Obj, Prim)
+                           then
+                              raise Program_Error;
+                           end if;
+
+                           --
+                           --  Having to override the Tag is needed because of
+                           --  the way the Crypto module is hooked up in the
+                           --  overall Data flow. Since it is the one that
+                           --  acknowledges the primitive to the pool in the
+                           --  read
+                           --  case, we have to use the Tag the pool module
+                           --  uses.
+                           --
+                           Crypto.Submit_Primitive (
+                              Obj.Crypto_Obj,
+                              Primitive.Copy_Valid_Object_New_Tag (
+                                 Prim,
+                                 Block_IO.Peek_Completed_Tag (
+                                    Obj.IO_Obj, Prim)),
+                              Block_IO.Peek_Completed_Key_ID (
+                                 Obj.IO_Obj, Prim),
+                              Data_Idx);
+
+                           Crypto_Cipher_Buf (Data_Idx) := IO_Buf (Index);
+
+                        end Declare_Data;
+                     end if;
+
+                  elsif Primitive.Has_Tag_Cache_Blk_IO (Prim) then
+
+                     Declare_Slot_Idx :
+                     declare
+                        Slot_Idx : constant Cache.Slots_Index_Type :=
+                           Cache.Slots_Index_Type (Primitive.Index (Prim));
+                     begin
+                        if Primitive.Operation (Prim) = Read then
+                           Obj.Cache_Slots_Data (Slot_Idx) := IO_Buf (Index);
+                        end if;
+                        Cache.Mark_Generated_Primitive_Complete (
+                           Obj.Cache_Obj, Slot_Idx, Primitive.Success (Prim));
+
+                     end Declare_Slot_Idx;
+
+                  elsif Primitive.Has_Tag_Write_Back (Prim) then
+                     Write_Back.Mark_Completed_IO_Primitive (
+                        Obj.Write_Back_Obj, Prim);
+
+                  elsif Primitive.Has_Tag_SB_Ctrl_Blk_IO_Write_SB (Prim) then
+                     Superblock_Control.Mark_Generated_Prim_Complete (
+                        Obj.SB_Ctrl, Prim);
+
+                  elsif Primitive.Has_Tag_SB_Ctrl_Blk_IO_Read_SB (Prim) then
+                     Superblock_Control.Mark_Generated_Prim_Complete_Blk_Data (
+                        Obj.SB_Ctrl, Prim, IO_Buf (Index));
+
+                  elsif Primitive.Has_Tag_SB_Ctrl_Blk_IO_Sync (Prim) then
+                     Superblock_Control.Mark_Generated_Prim_Complete (
+                        Obj.SB_Ctrl, Prim);
+
+                  elsif Primitive.Has_Tag_VBD_Rkg_Blk_IO (Prim) then
+
+                     case Primitive.Operation (Prim) is
+                     when Read =>
+
+                        VBD_Rekeying.Mark_Generated_Prim_Completed_Blk_Data (
+                           Obj.VBD_Rkg, Prim, IO_Buf (Index));
+
+                     when Write | Sync =>
+
+                        VBD_Rekeying.Mark_Generated_Prim_Completed (
+                           Obj.VBD_Rkg, Prim);
+
+                     end case;
+
+                  else
+                     raise Program_Error;
+                  end if;
+                  exit Loop_IO_Completed_Prims when not Mod_Progress;
+
+               end Declare_Index_3;
+               Block_IO.Drop_Completed_Primitive (Obj.IO_Obj, Prim);
+               Progress := True;
+
+            end case;
 
          end Declare_Prim_15;
-         Progress := True;
+
       end loop Loop_IO_Completed_Prims;
    end Execute_IO;
 

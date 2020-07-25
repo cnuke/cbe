@@ -74,12 +74,13 @@ is
       Key_ID :        Key_ID_Type);
 
    --
-   --  Submit_Primitive_Req_Key_ID
+   --  Submit_Primitive_Client_Data
    --
-   procedure Submit_Primitive_Req_Key_ID (
+   procedure Submit_Primitive_Client_Data (
       Obj            : in out Object_Type;
       Prim           :        Primitive.Object_Type;
       Req            :        Request.Object_Type;
+      VBA            :        Virtual_Block_Address_Type;
       Key_ID         :        Key_ID_Type;
       Cipher_Buf_Idx :    out Cipher_Buffer_Index_Type);
 
@@ -153,6 +154,14 @@ is
    return Request.Object_Type;
 
    --
+   --  Peek_Generated_VBA
+   --
+   function Peek_Generated_VBA (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Virtual_Block_Address_Type;
+
+   --
    --  Peek_Generated_Key
    --
    function Peek_Generated_Key (
@@ -164,6 +173,13 @@ is
    --  Drop_Generated_Primitive
    --
    procedure Drop_Generated_Primitive (
+      Obj     : in out Object_Type;
+      Job_Idx :        Jobs_Index_Type);
+
+   --
+   --  Drop_Generated_Primitive_New
+   --
+   procedure Drop_Generated_Primitive_New (
       Obj     : in out Object_Type;
       Job_Idx :        Jobs_Index_Type);
 
@@ -186,12 +202,27 @@ is
    procedure Drop_Completed_Primitive (Obj : in out Object_Type);
 
    --
+   --  Drop_Completed_Primitive_New
+   --
+   procedure Drop_Completed_Primitive_New (
+      Obj  : in out Object_Type;
+      Prim :        Primitive.Object_Type);
+
+   --
    --  Mark_Completed_Primitive
    --
    procedure Mark_Completed_Primitive (
       Obj     : in out Object_Type;
       Job_Idx :        Jobs_Index_Type;
       Success :        Boolean);
+
+   --
+   --  Mark_Generated_Primitive_Complete
+   --
+   procedure Mark_Generated_Primitive_Complete (
+      Obj           : in out Object_Type;
+      Plain_Buf_Idx :        Plain_Buffer_Index_Type;
+      Success       :        Boolean);
 
    --
    --  Data_Index
@@ -206,6 +237,7 @@ private
    type Job_State_Type is (
       Invalid,
       DSCD_Submitted,
+      DSCD_Completed,
 
       DSCD_Decrypt_Data_Pending,
       DSCD_Decrypt_Data_In_Progress,
@@ -225,6 +257,7 @@ private
       Submitted_Prim : Primitive.Object_Type;
       Generated_Prim : Primitive.Object_Type;
       Req            : Request.Object_Type;
+      VBA            : Virtual_Block_Address_Type;
       Key            : Key_Plaintext_Type;
    end record;
 

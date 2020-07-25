@@ -4127,6 +4127,9 @@ is
                return;
 
             end if;
+            Debug.Print_String ("XXX " & Primitive.To_String (
+               Ctrl.Jobs (Idx).Generated_Prim));
+            Debug.Print_String ("XXX " & Primitive.To_String (Prim));
             raise Program_Error;
 
          when Sync_Cache_In_Progress =>

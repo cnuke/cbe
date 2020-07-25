@@ -1975,6 +1975,7 @@ is
             Job.Submitted_Prim,
             Primitive.Success (Job.Generated_Prim));
 
+         Debug.Print_String ("VBD_Rkg Read_VBA Completed");
          Job.State := Completed;
          Progress := True;
 
@@ -2772,6 +2773,7 @@ is
 
          case Rkg.Jobs (Idx).State is
          when
+            Read_Leaf_Node_For_Client_Pending |
             Alloc_PBAs_At_Leaf_Lvl_Pending |
             Alloc_PBAs_At_Higher_Inner_Lvl_Pending |
             Alloc_PBAs_At_Lowest_Inner_Lvl_Pending
@@ -3408,6 +3410,8 @@ is
                raise Program_Error;
             end if;
 
+            Debug.Print_String (
+               "VBD_Rkg Read_VBA Read_Leaf_Node_For_Client_Completed");
             Rkg.Jobs (Idx).State := Read_Leaf_Node_For_Client_Completed;
             Rkg.Jobs (Idx).Generated_Prim := Prim;
             return;

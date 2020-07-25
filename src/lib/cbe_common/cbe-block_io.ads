@@ -68,12 +68,13 @@ is
       Data_Index :    out Data_Index_Type);
 
    --
-   --  Submit_Primitive_Req_Key_ID
+   --  Submit_Primitive_Client_Data
    --
-   procedure Submit_Primitive_Req_Key_ID (
+   procedure Submit_Primitive_Client_Data (
       Obj    : in out Object_Type;
       Prim   :        Primitive.Object_Type;
       Req    :        Request.Object_Type;
+      VBA    :        Virtual_Block_Address_Type;
       Key_ID :        Key_ID_Type);
 
    --
@@ -150,6 +151,20 @@ is
       Prim :        Primitive.Object_Type);
 
    --
+   --  Drop_Completed_Primitive_New
+   --
+   procedure Drop_Completed_Primitive_New (
+      Obj  : in out Object_Type;
+      Prim :        Primitive.Object_Type);
+
+   --
+   --  Drop_Generated_Primitive_New
+   --
+   procedure Drop_Generated_Primitive_New (
+      Obj  : in out Object_Type;
+      Prim :        Primitive.Object_Type);
+
+   --
    --  Execute
    --
    procedure Execute (
@@ -200,6 +215,14 @@ is
    return Request.Object_Type;
 
    --
+   --  Peek_Generated_VBA
+   --
+   function Peek_Generated_VBA (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Virtual_Block_Address_Type;
+
+   --
    --  Discard given generated primitive
    --
    --  This method must only be called after 'peek_generated_io_primitive'
@@ -228,11 +251,19 @@ is
       Data_Idx :        Data_Index_Type;
       Success  :        Boolean);
 
+   --
+   --  Mark_Generated_Primitive_Complete_New
+   --
+   procedure Mark_Generated_Primitive_Complete_New (
+      Obj  : in out Object_Type;
+      Prim :        Primitive.Object_Type);
+
 private
 
    type Entry_State_Type is (
       Unused,
       Read_Client_Data_Submitted,
+      Read_Client_Data_Completed,
 
       Read_Client_Data_Read_Data_Pending,
       Read_Client_Data_Read_Data_In_Progress,
@@ -254,6 +285,7 @@ private
       State          : Entry_State_Type;
       Key_ID         : Key_ID_Type;
       Req            : Request.Object_Type;
+      VBA            : Virtual_Block_Address_Type;
       Submitted_Prim : Primitive.Object_Type;
       Generated_Prim : Primitive.Object_Type;
    end record;
