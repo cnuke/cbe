@@ -133,10 +133,10 @@ is
    --  Client_Transfer_Read_Data_Required
    --
    procedure Client_Transfer_Read_Data_Required (
-      Obj           : in out Object_Type;
-      Req           :    out Request.Object_Type;
-      VBA           :    out Virtual_Block_Address_Type;
-      Plain_Buf_Idx :    out Crypto.Plain_Buffer_Index_Type);
+      Obj           :     Object_Type;
+      Req           : out Request.Object_Type;
+      VBA           : out Virtual_Block_Address_Type;
+      Plain_Buf_Idx : out Crypto.Plain_Buffer_Index_Type);
 
    --
    --  Client_Transfer_Read_Data_In_Progress

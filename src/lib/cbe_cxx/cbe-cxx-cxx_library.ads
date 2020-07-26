@@ -143,15 +143,15 @@ is
    --  Client_Transfer_Read_Data_Required
    --
    procedure Client_Transfer_Read_Data_Required (
-      Obj           : in out Library.Object_Type;
-      Req           :    out CXX_Request_Type;
-      VBA           :    out Virtual_Block_Address_Type;
-      Plain_Buf_Idx :    out CXX_Crypto_Plain_Buffer_Index_Type)
+      Obj           :     Library.Object_Type;
+      Req           : out CXX_Request_Type;
+      VBA           : out Virtual_Block_Address_Type;
+      Plain_Buf_Idx : out CXX_Crypto_Plain_Buffer_Index_Type)
    with
       Export,
       Convention    => C,
       External_Name =>
-         "_ZN3Cbe7Library34client_transfer_read_data_requiredERNS_" &
+         "_ZNK3Cbe7Library34client_transfer_read_data_requiredERNS_" &
          "7RequestERyRNS_19Crypto_plain_buffer5IndexE";
 
    --

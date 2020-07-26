@@ -171,7 +171,7 @@ class Cbe::Library : public Cbe::Spark_object<353944>
 
 	void client_transfer_read_data_required(Request &,
 	                                        uint64_t &,
-	                                        Crypto_plain_buffer::Index &);
+	                                        Crypto_plain_buffer::Index &) const;
 
 	void client_transfer_read_data_in_progress(Crypto_plain_buffer::Index const &);
 
