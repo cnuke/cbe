@@ -261,7 +261,7 @@ is
 private
 
    type Entry_State_Type is (
-      Unused,
+
       Read_Client_Data_Submitted,
       Read_Client_Data_Completed,
 
@@ -273,6 +273,18 @@ private
       Read_Client_Data_Decrypt_And_Supply_Data_In_Progress,
       Read_Client_Data_Decrypt_And_Supply_Data_Completed,
 
+      Write_Client_Data_Submitted,
+      Write_Client_Data_Completed,
+
+      Write_Client_Data_Write_Data_Pending,
+      Write_Client_Data_Write_Data_In_Progress,
+      Write_Client_Data_Write_Data_Completed,
+
+      Write_Client_Data_Obtain_And_Encrypt_Data_Pending,
+      Write_Client_Data_Obtain_And_Encrypt_Data_In_Progress,
+      Write_Client_Data_Obtain_And_Encrypt_Data_Completed,
+
+      Unused,
       Pending,
       In_Progress,
       Complete);
@@ -306,6 +318,14 @@ private
    --  Execute_Read_Client_Data
    --
    procedure Execute_Read_Client_Data (
+      Entr      : in out Entry_Type;
+      Entry_Idx :        Entries_Index_Type;
+      Progress  : in out Boolean);
+
+   --
+   --  Execute_Write_Client_Data
+   --
+   procedure Execute_Write_Client_Data (
       Entr      : in out Entry_Type;
       Entry_Idx :        Entries_Index_Type;
       Progress  : in out Boolean);

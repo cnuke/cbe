@@ -335,10 +335,19 @@ is
    return Boolean
    is (Obj.Tag = Tag_Blk_IO_Blk_Dev_Read);
 
+   function Has_Tag_Blk_IO_Blk_Dev_Write (Obj : Object_Type)
+   return Boolean
+   is (Obj.Tag = Tag_Blk_IO_Blk_Dev_Write);
+
    function Has_Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data (
       Obj : Object_Type)
    return Boolean
    is (Obj.Tag = Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data);
+
+   function Has_Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data (
+      Obj : Object_Type)
+   return Boolean
+   is (Obj.Tag = Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data);
 
    function Has_Tag_Crypto_IO_Crypto_Dev_Decrypt (
       Obj : Object_Type)

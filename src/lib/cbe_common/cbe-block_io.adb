@@ -93,6 +93,16 @@ is
                Obj.Entries (Idx).Key_ID := Key_ID;
                return;
 
+            when Primitive.Tag_VBD_Rkg_Blk_IO_Write_Client_Data =>
+
+               Obj.Entries (Idx).Submitted_Prim := Prim;
+               Obj.Entries (Idx).Req := Req;
+               Obj.Entries (Idx).VBA := VBA;
+               Obj.Entries (Idx).State := Write_Client_Data_Submitted;
+               Obj.Used_Entries := Obj.Used_Entries + 1;
+               Obj.Entries (Idx).Key_ID := Key_ID;
+               return;
+
             when others =>
 
                raise Program_Error;
@@ -171,6 +181,8 @@ is
          when Complete =>
             return Obj.Entries (I).Prim;
          when Read_Client_Data_Completed =>
+            return Obj.Entries (I).Submitted_Prim;
+         when Write_Client_Data_Completed =>
             return Obj.Entries (I).Submitted_Prim;
          when others =>
             null;
@@ -278,7 +290,8 @@ is
    begin
       Find_Corresponding_Job :
       for Idx in Obj.Entries'Range loop
-         if Obj.Entries (Idx).State = Read_Client_Data_Completed and then
+         if (Obj.Entries (Idx).State = Read_Client_Data_Completed or else
+             Obj.Entries (Idx).State = Write_Client_Data_Completed) and then
             Primitive.Equal (Prim, Obj.Entries (Idx).Submitted_Prim)
          then
             Obj.Entries (Idx).State := Unused;
@@ -314,6 +327,18 @@ is
 
             Execute_Read_Client_Data (Obj.Entries (Idx), Idx, Progress);
 
+         when
+            Write_Client_Data_Submitted |
+            Write_Client_Data_Write_Data_Pending |
+            Write_Client_Data_Write_Data_In_Progress |
+            Write_Client_Data_Write_Data_Completed |
+            Write_Client_Data_Obtain_And_Encrypt_Data_Pending |
+            Write_Client_Data_Obtain_And_Encrypt_Data_In_Progress |
+            Write_Client_Data_Obtain_And_Encrypt_Data_Completed
+         =>
+
+            Execute_Write_Client_Data (Obj.Entries (Idx), Idx, Progress);
+
          when others =>
 
             null;
@@ -343,6 +368,10 @@ is
 
             return Obj.Entries (Idx).Generated_Prim;
 
+         when Write_Client_Data_Write_Data_Pending =>
+
+            return Obj.Entries (Idx).Generated_Prim;
+
          when others =>
 
             null;
@@ -367,6 +396,10 @@ is
 
          case Obj.Entries (Idx).State is
          when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
+
+            return Obj.Entries (Idx).Generated_Prim;
+
+         when Write_Client_Data_Obtain_And_Encrypt_Data_Pending =>
 
             return Obj.Entries (Idx).Generated_Prim;
 
@@ -409,7 +442,9 @@ is
 
          when
             Read_Client_Data_Read_Data_Pending |
-            Read_Client_Data_Decrypt_And_Supply_Data_Pending
+            Read_Client_Data_Decrypt_And_Supply_Data_Pending |
+            Write_Client_Data_Write_Data_Pending |
+            Write_Client_Data_Obtain_And_Encrypt_Data_Pending
          =>
 
             if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
@@ -440,7 +475,10 @@ is
    begin
 
       case Obj.Entries (Idx).State is
-      when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
+      when
+         Read_Client_Data_Decrypt_And_Supply_Data_Pending |
+         Write_Client_Data_Obtain_And_Encrypt_Data_Pending
+      =>
 
          if not Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
             raise Program_Error;
@@ -469,7 +507,10 @@ is
    begin
 
       case Obj.Entries (Idx).State is
-      when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
+      when
+         Read_Client_Data_Decrypt_And_Supply_Data_Pending |
+         Write_Client_Data_Obtain_And_Encrypt_Data_Pending
+      =>
 
          if not Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
             raise Program_Error;
@@ -498,7 +539,10 @@ is
    begin
 
       case Obj.Entries (Idx).State is
-      when Read_Client_Data_Decrypt_And_Supply_Data_Pending =>
+      when
+         Read_Client_Data_Decrypt_And_Supply_Data_Pending |
+         Write_Client_Data_Obtain_And_Encrypt_Data_Pending
+      =>
 
          if not Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
             raise Program_Error;
@@ -532,6 +576,15 @@ is
             if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
                Obj.Entries (Idx).State :=
                   Read_Client_Data_Decrypt_And_Supply_Data_In_Progress;
+               return;
+            end if;
+            raise Program_Error;
+
+         when Write_Client_Data_Obtain_And_Encrypt_Data_Pending =>
+
+            if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
+               Obj.Entries (Idx).State :=
+                  Write_Client_Data_Obtain_And_Encrypt_Data_In_Progress;
                return;
             end if;
             raise Program_Error;
@@ -585,6 +638,11 @@ is
          Obj.Entries (Data_Idx).State :=
             Read_Client_Data_Read_Data_In_Progress;
 
+      when Write_Client_Data_Write_Data_Pending =>
+
+         Obj.Entries (Data_Idx).State :=
+            Write_Client_Data_Write_Data_In_Progress;
+
       when others =>
 
          raise Program_Error;
@@ -614,6 +672,12 @@ is
          Primitive.Success (Obj.Entries (Data_Idx).Generated_Prim, Success);
          Obj.Entries (Data_Idx).State := Read_Client_Data_Read_Data_Completed;
 
+      when Write_Client_Data_Write_Data_In_Progress =>
+
+         Primitive.Success (Obj.Entries (Data_Idx).Generated_Prim, Success);
+         Obj.Entries (Data_Idx).State :=
+            Write_Client_Data_Write_Data_Completed;
+
       when others =>
 
          raise Program_Error;
@@ -641,6 +705,16 @@ is
                Obj.Entries (Idx).Generated_Prim := Prim;
                Obj.Entries (Idx).State :=
                   Read_Client_Data_Decrypt_And_Supply_Data_Completed;
+               return;
+            end if;
+            raise Program_Error;
+
+         when Write_Client_Data_Obtain_And_Encrypt_Data_In_Progress =>
+
+            if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
+               Obj.Entries (Idx).Generated_Prim := Prim;
+               Obj.Entries (Idx).State :=
+                  Write_Client_Data_Obtain_And_Encrypt_Data_Completed;
                return;
             end if;
             raise Program_Error;
@@ -713,5 +787,63 @@ is
       end case;
 
    end Execute_Read_Client_Data;
+
+   --
+   --  Execute_Write_Client_Data
+   --
+   procedure Execute_Write_Client_Data (
+      Entr      : in out Entry_Type;
+      Entry_Idx :        Entries_Index_Type;
+      Progress  : in out Boolean)
+   is
+   begin
+
+      case Entr.State is
+      when Write_Client_Data_Submitted =>
+
+         Entr.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+            Op     => Write,
+            Succ   => False,
+            Tg     =>
+               Primitive.Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data,
+            Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
+            Idx    => Primitive.Index_Type (Entry_Idx));
+
+         Entr.State := Write_Client_Data_Obtain_And_Encrypt_Data_Pending;
+         Progress := True;
+
+      when Write_Client_Data_Obtain_And_Encrypt_Data_Completed =>
+
+         if not Primitive.Success (Entr.Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         Entr.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+            Op     => Write,
+            Succ   => False,
+            Tg     => Primitive.Tag_Blk_IO_Blk_Dev_Write,
+            Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
+            Idx    => Primitive.Index_Type (Entry_Idx));
+
+         Entr.State := Write_Client_Data_Write_Data_Pending;
+         Progress := True;
+
+      when Write_Client_Data_Write_Data_Completed =>
+
+         if not Primitive.Success (Entr.Generated_Prim) then
+            raise Program_Error;
+         end if;
+
+         Primitive.Success (Entr.Submitted_Prim, True);
+         Entr.State := Write_Client_Data_Completed;
+         Progress := True;
+
+      when others =>
+
+         null;
+
+      end case;
+
+   end Execute_Write_Client_Data;
 
 end CBE.Block_IO;

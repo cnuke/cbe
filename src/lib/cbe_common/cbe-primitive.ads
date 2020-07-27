@@ -78,7 +78,9 @@ is
       Tag_FT_Rszg_MT_Alloc,
       Tag_FT_Rszg_MT_Rszg_Extend_By_One_Leaf,
       Tag_Blk_IO_Blk_Dev_Read,
+      Tag_Blk_IO_Blk_Dev_Write,
       Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data,
+      Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data,
       Tag_Crypto_IO_Crypto_Dev_Decrypt,
       Tag_Crypto_IO_Client_Supply_Data,
       Tag_VBD_Rkg_Blk_IO,
@@ -175,8 +177,11 @@ is
       when Tag_FT_Rszg_MT_Rszg_Extend_By_One_Leaf =>
          "FT_Rszg_MT_Rszg_Extend_By_One_Leaf",
       when Tag_Blk_IO_Blk_Dev_Read => "Blk_IO_Blk_Dev_Read",
+      when Tag_Blk_IO_Blk_Dev_Write => "Blk_IO_Blk_Dev_Write",
       when Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data =>
          "Blk_IO_Crypto_Decrypt_And_Supply_Client_Data",
+      when Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data =>
+         "Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data",
       when Tag_Crypto_IO_Crypto_Dev_Decrypt =>
          "Crypto_IO_Crypto_Dev_Decrypt",
       when Tag_Crypto_IO_Client_Supply_Data =>
@@ -439,7 +444,14 @@ is
    function Has_Tag_Blk_IO_Blk_Dev_Read (Obj : Object_Type)
    return Boolean;
 
+   function Has_Tag_Blk_IO_Blk_Dev_Write (Obj : Object_Type)
+   return Boolean;
+
    function Has_Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data (
+      Obj : Object_Type)
+   return Boolean;
+
+   function Has_Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data (
       Obj : Object_Type)
    return Boolean;
 
