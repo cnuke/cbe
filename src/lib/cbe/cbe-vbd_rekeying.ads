@@ -50,9 +50,9 @@ is
       New_Key_ID       :        Key_ID_Type);
 
    --
-   --  Submit_Primitive_Read_VBA
+   --  Submit_Primitive_Access_VBA
    --
-   procedure Submit_Primitive_Read_VBA (
+   procedure Submit_Primitive_Access_VBA (
       Rkg              : in out Rekeying_Type;
       Prim             :        Primitive.Object_Type;
       Req              :        Request.Object_Type;
@@ -304,6 +304,7 @@ private
       Invalid,
       Rekey_VBA,
       Read_VBA,
+      Write_VBA,
       VBD_Extension_Step
    );
 
@@ -322,9 +323,13 @@ private
       Read_Leaf_Node_In_Progress,
       Read_Leaf_Node_Completed,
 
-      Read_Leaf_Node_For_Client_Pending,
-      Read_Leaf_Node_For_Client_In_Progress,
-      Read_Leaf_Node_For_Client_Completed,
+      Read_Client_Data_From_Leaf_Node_Pending,
+      Read_Client_Data_From_Leaf_Node_In_Progress,
+      Read_Client_Data_From_Leaf_Node_Completed,
+
+      Write_Client_Data_To_Leaf_Node_Pending,
+      Write_Client_Data_To_Leaf_Node_In_Progress,
+      Write_Client_Data_To_Leaf_Node_Completed,
 
       Decrypt_Leaf_Node_Pending,
       Decrypt_Leaf_Node_In_Progress,
@@ -415,6 +420,14 @@ private
       Progress : in out Boolean);
 
    --
+   --  Execute_Write_VBA
+   --
+   procedure Execute_Write_VBA (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      Progress : in out Boolean);
+
+   --
    --  Execute_Rekey_VBA
    --
    procedure Execute_Rekey_VBA (
@@ -459,6 +472,14 @@ private
    --  Execute_Read_VBA_Read_Inner_Node_Completed
    --
    procedure Execute_Read_VBA_Read_Inner_Node_Completed (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      Progress :    out Boolean);
+
+   --
+   --  Execute_Write_VBA_Read_Inner_Node_Completed
+   --
+   procedure Execute_Write_VBA_Read_Inner_Node_Completed (
       Job      : in out Job_Type;
       Job_Idx  :        Jobs_Index_Type;
       Progress :    out Boolean);

@@ -83,6 +83,7 @@ is
       Tag_Crypto_IO_Client_Supply_Data,
       Tag_VBD_Rkg_Blk_IO,
       Tag_VBD_Rkg_Blk_IO_Read_Client_Data,
+      Tag_VBD_Rkg_Blk_IO_Write_Client_Data,
       Tag_VBD_Rkg_Crypto_Encrypt,
       Tag_VBD_Rkg_Crypto_Decrypt,
       Tag_VBD_Rkg_FT_Alloc_For_Non_Rkg,
@@ -183,6 +184,8 @@ is
       when Tag_VBD_Rkg_Blk_IO => "VBD_Rkg_Blk_IO",
       when Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
          "VBD_Rkg_Blk_IO_Read_Client_Data",
+      when Tag_VBD_Rkg_Blk_IO_Write_Client_Data =>
+         "VBD_Rkg_Blk_IO_Write_Client_Data",
       when Tag_VBD_Rkg_Crypto_Encrypt => "VBD_Rkg_Crypto_Encrypt",
       when Tag_VBD_Rkg_Crypto_Decrypt => "VBD_Rkg_Crypto_Decrypt",
       when Tag_VBD_Rkg_FT_Alloc_For_Non_Rkg => "VBD_Rkg_FT_Alloc_For_Non_Rkg",
@@ -451,6 +454,9 @@ is
    function Has_Tag_VBD_Rkg_Blk_IO (Obj : Object_Type) return Boolean;
 
    function Has_Tag_VBD_Rkg_Blk_IO_Read_Client_Data (Obj : Object_Type)
+   return Boolean;
+
+   function Has_Tag_VBD_Rkg_Blk_IO_Write_Client_Data (Obj : Object_Type)
    return Boolean;
 
    function Has_Tag_VBD_Rkg_Crypto_Encrypt (Obj : Object_Type) return Boolean;

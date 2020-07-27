@@ -2373,21 +2373,44 @@ is
             case Primitive.Operation (Prim) is
             when Write =>
 
-               Declare_Blk_IO_Buf_Idx :
-               declare
-                  Idx : Block_IO.Data_Index_Type;
-               begin
+               case Primitive.Tag (Prim) is
+               when Primitive.Tag_VBD_Rkg_Blk_IO =>
 
-                  Block_IO.Submit_Primitive (
-                     Obj.IO_Obj, Primitive.Tag_VBD_Rkg_Blk_IO, Prim, Idx);
+                  Declare_Blk_IO_Buf_Idx :
+                  declare
+                     Idx : Block_IO.Data_Index_Type;
+                  begin
 
-                  Blk_IO_Buf (Idx) :=
-                     VBD_Rekeying.Peek_Generated_Blk_Data (Obj.VBD_Rkg, Prim);
+                     Block_IO.Submit_Primitive (
+                        Obj.IO_Obj, Primitive.Tag_VBD_Rkg_Blk_IO, Prim, Idx);
 
-               end Declare_Blk_IO_Buf_Idx;
+                     Blk_IO_Buf (Idx) :=
+                        VBD_Rekeying.Peek_Generated_Blk_Data (
+                           Obj.VBD_Rkg, Prim);
 
-               VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
-               Progress := True;
+                  end Declare_Blk_IO_Buf_Idx;
+
+                  VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
+                  Progress := True;
+
+               when Primitive.Tag_VBD_Rkg_Blk_IO_Write_Client_Data =>
+
+                  Block_IO.Submit_Primitive_Client_Data (
+                     Obj.IO_Obj,
+                     Prim,
+                     VBD_Rekeying.Peek_Generated_Req (Obj.VBD_Rkg, Prim),
+                     VBD_Rekeying.Peek_Generated_VBA (Obj.VBD_Rkg, Prim),
+                     VBD_Rekeying.Peek_Generated_Crypto_Key_ID (
+                        Obj.VBD_Rkg, Prim));
+
+                  VBD_Rekeying.Drop_Generated_Primitive (Obj.VBD_Rkg, Prim);
+                  Progress := True;
+
+               when others =>
+
+                  raise Program_Error;
+
+               end case;
 
             when Sync =>
 
@@ -2510,9 +2533,12 @@ is
                not VBD_Rekeying.Primitive_Acceptable (Obj.VBD_Rkg);
 
             case Primitive.Tag (Prim) is
-            when Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA =>
+            when
+               Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA |
+               Primitive.Tag_SB_Ctrl_VBD_Rkg_Write_VBA
+            =>
 
-               VBD_Rekeying.Submit_Primitive_Read_VBA (
+               VBD_Rekeying.Submit_Primitive_Access_VBA (
                   Obj.VBD_Rkg, Prim,
                   Superblock_Control.Peek_Generated_Req (Obj.SB_Ctrl, Prim),
                   Superblock_Control.Peek_Generated_Snapshot (

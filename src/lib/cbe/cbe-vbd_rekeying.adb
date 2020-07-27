@@ -282,9 +282,9 @@ is
    end Submit_Primitive_Rekeying;
 
    --
-   --  Submit_Primitive_Read_VBA
+   --  Submit_Primitive_Access_VBA
    --
-   procedure Submit_Primitive_Read_VBA (
+   procedure Submit_Primitive_Access_VBA (
       Rkg              : in out Rekeying_Type;
       Prim             :        Primitive.Object_Type;
       Req              :        Request.Object_Type;
@@ -311,6 +311,17 @@ is
                Rkg.Jobs (Idx).New_Key_ID       := Key_ID;
                return;
 
+            when Primitive.Tag_SB_Ctrl_VBD_Rkg_Write_VBA =>
+
+               Rkg.Jobs (Idx).Operation        := Write_VBA;
+               Rkg.Jobs (Idx).Submitted_Prim   := Prim;
+               Rkg.Jobs (Idx).Snapshots (0)    := Snapshot;
+               Rkg.Jobs (Idx).Snapshots_Degree := Snapshots_Degree;
+               Rkg.Jobs (Idx).Req              := Req;
+               Rkg.Jobs (Idx).State            := Submitted;
+               Rkg.Jobs (Idx).New_Key_ID       := Key_ID;
+               return;
+
             when others =>
 
                raise Program_Error;
@@ -322,7 +333,7 @@ is
       end loop Find_Invalid_Job;
       raise Program_Error;
 
-   end Submit_Primitive_Read_VBA;
+   end Submit_Primitive_Access_VBA;
 
    --
    --  Peek_Completed_Primitive
@@ -931,6 +942,109 @@ is
    end Execute_VBD_Ext_Step_Read_Inner_Node_Completed;
 
    --
+   --  Execute_Write_VBA_Read_Inner_Node_Completed
+   --
+   procedure Execute_Write_VBA_Read_Inner_Node_Completed (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      Progress :    out Boolean)
+   is
+   begin
+      if not Primitive.Success (Job.Generated_Prim) then
+         raise Program_Error;
+      end if;
+
+      if Job.T1_Blk_Idx = Job.Snapshots (Job.Snapshot_Idx).Max_Level then
+
+         if Hash_Of_T1_Node_Blk (Job.T1_Blks (Job.T1_Blk_Idx)) /=
+               Job.Snapshots (Job.Snapshot_Idx).Hash
+         then
+            raise Program_Error;
+         end if;
+
+      else
+
+         Declare_Child_Idx_1 :
+         declare
+            Parent_Lvl_Idx : constant Type_1_Node_Blocks_Index_Type :=
+               Job.T1_Blk_Idx + 1;
+
+            Child_Idx : constant Type_1_Node_Block_Index_Type :=
+               Child_Idx_For_VBA (
+                  Job.VBA, Parent_Lvl_Idx, Job.Snapshots_Degree);
+         begin
+            if Hash_Of_T1_Node_Blk (Job.T1_Blks (Job.T1_Blk_Idx)) /=
+                  Job.T1_Blks (Parent_Lvl_Idx) (Child_Idx).Hash
+            then
+               raise Program_Error;
+            end if;
+         end Declare_Child_Idx_1;
+
+      end if;
+
+      if Job.T1_Blk_Idx > 1 then
+
+         Declare_Child_1 :
+         declare
+            Parent_Lvl_Idx : constant Type_1_Node_Blocks_Index_Type :=
+               Job.T1_Blk_Idx;
+
+            Child_Lvl_Idx : constant Type_1_Node_Blocks_Index_Type :=
+               Job.T1_Blk_Idx - 1;
+
+            Child_Idx : constant Type_1_Node_Block_Index_Type :=
+               Child_Idx_For_VBA (
+                  Job.VBA, Parent_Lvl_Idx, Job.Snapshots_Degree);
+
+            Child : constant Type_1_Node_Type :=
+               Job.T1_Blks (Parent_Lvl_Idx) (Child_Idx);
+         begin
+
+            Job.T1_Blk_Idx := Child_Lvl_Idx;
+            Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+               Op     => Read,
+               Succ   => False,
+               Tg     => Primitive.Tag_VBD_Rkg_Cache,
+               Blk_Nr => Block_Number_Type (Child.PBA),
+               Idx    => Primitive.Index_Type (Job_Idx));
+
+            Job.State := Read_Inner_Node_Pending;
+            Progress := True;
+
+         end Declare_Child_1;
+
+      else
+
+         Declare_Child_2 :
+         declare
+            Parent_Lvl_Idx : constant Type_1_Node_Blocks_Index_Type :=
+               Job.T1_Blk_Idx;
+
+            Child_Idx : constant Type_1_Node_Block_Index_Type :=
+               Child_Idx_For_VBA (
+                  Job.VBA, Parent_Lvl_Idx, Job.Snapshots_Degree);
+
+            Child : constant Type_1_Node_Type :=
+               Job.T1_Blks (Parent_Lvl_Idx) (Child_Idx);
+         begin
+
+            Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+               Op     => Write,
+               Succ   => False,
+               Tg     => Primitive.Tag_VBD_Rkg_Blk_IO_Write_Client_Data,
+               Blk_Nr => Block_Number_Type (Child.PBA),
+               Idx    => Primitive.Index_Type (Job_Idx));
+
+            Job.State := Write_Client_Data_To_Leaf_Node_Pending;
+            Progress := True;
+
+         end Declare_Child_2;
+
+      end if;
+
+   end Execute_Write_VBA_Read_Inner_Node_Completed;
+
+   --
    --  Execute_Read_VBA_Read_Inner_Node_Completed
    --
    procedure Execute_Read_VBA_Read_Inner_Node_Completed (
@@ -1024,7 +1138,7 @@ is
                Blk_Nr => Block_Number_Type (Child.PBA),
                Idx    => Primitive.Index_Type (Job_Idx));
 
-            Job.State := Read_Leaf_Node_For_Client_Pending;
+            Job.State := Read_Client_Data_From_Leaf_Node_Pending;
             Progress := True;
 
          end Declare_Child_2;
@@ -1951,7 +2065,7 @@ is
          Execute_Read_VBA_Read_Inner_Node_Completed (
             Job, Job_Idx, Progress);
 
-      when Read_Leaf_Node_For_Client_Completed =>
+      when Read_Client_Data_From_Leaf_Node_Completed =>
 
          Primitive.Success (
             Job.Submitted_Prim,
@@ -1967,6 +2081,65 @@ is
       end case;
 
    end Execute_Read_VBA;
+
+   --
+   --  Execute_Write_VBA
+   --
+   procedure Execute_Write_VBA (
+      Job      : in out Job_Type;
+      Job_Idx  :        Jobs_Index_Type;
+      Progress : in out Boolean)
+   is
+   begin
+
+      case Job.State is
+      when Submitted =>
+
+         Job.Snapshot_Idx := 0;
+         Job.VBA :=
+            Virtual_Block_Address_Type (
+               Primitive.Block_Number (Job.Submitted_Prim));
+
+         Job.T1_Blk_Idx :=
+            Type_1_Node_Blocks_Index_Type (
+               Job.Snapshots (Job.Snapshot_Idx).Max_Level);
+
+         Job.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
+            Op     => Read,
+            Succ   => False,
+            Tg     => Primitive.Tag_VBD_Rkg_Cache,
+            Blk_Nr => Block_Number_Type (Job.Snapshots (Job.Snapshot_Idx).PBA),
+            Idx    => Primitive.Index_Type (Job_Idx));
+
+         Job.State := Read_Root_Node_Pending;
+         Progress := True;
+
+      when Read_Root_Node_Completed =>
+
+         Execute_Write_VBA_Read_Inner_Node_Completed (
+            Job, Job_Idx, Progress);
+
+      when Read_Inner_Node_Completed =>
+
+         Execute_Write_VBA_Read_Inner_Node_Completed (
+            Job, Job_Idx, Progress);
+
+      when Write_Client_Data_To_Leaf_Node_Completed =>
+
+         Primitive.Success (
+            Job.Submitted_Prim,
+            Primitive.Success (Job.Generated_Prim));
+
+         Job.State := Completed;
+         Progress := True;
+
+      when others =>
+
+         null;
+
+      end case;
+
+   end Execute_Write_VBA;
 
    --
    --  Execute_Rekey_VBA
@@ -2392,6 +2565,10 @@ is
 
             Execute_Read_VBA (Rkg.Jobs (Idx), Idx, Progress);
 
+         when Write_VBA =>
+
+            Execute_Write_VBA (Rkg.Jobs (Idx), Idx, Progress);
+
          when Rekey_VBA =>
 
             Execute_Rekey_VBA (Rkg.Jobs (Idx), Idx, Progress);
@@ -2425,8 +2602,9 @@ is
 
             case Rkg.Jobs (Idx).State is
             when
+               Read_Client_Data_From_Leaf_Node_Pending |
+               Write_Client_Data_To_Leaf_Node_Pending |
                Read_Leaf_Node_Pending |
-               Read_Leaf_Node_For_Client_Pending |
                Write_Leaf_Node_Pending
             =>
 
@@ -2562,7 +2740,16 @@ is
       if Rkg.Jobs (Idx).Operation /= Invalid then
 
          case Rkg.Jobs (Idx).State is
-         when Read_Leaf_Node_For_Client_Pending =>
+         when Read_Client_Data_From_Leaf_Node_Pending =>
+
+            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim)
+            then
+               raise Program_Error;
+            end if;
+
+            return Rkg.Jobs (Idx).Req;
+
+         when Write_Client_Data_To_Leaf_Node_Pending =>
 
             if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim)
             then
@@ -2754,7 +2941,8 @@ is
 
          case Rkg.Jobs (Idx).State is
          when
-            Read_Leaf_Node_For_Client_Pending |
+            Read_Client_Data_From_Leaf_Node_Pending |
+            Write_Client_Data_To_Leaf_Node_Pending |
             Alloc_PBAs_At_Leaf_Lvl_Pending |
             Alloc_PBAs_At_Higher_Inner_Lvl_Pending |
             Alloc_PBAs_At_Lowest_Inner_Lvl_Pending
@@ -3051,7 +3239,16 @@ is
 
             return Rkg.Jobs (Idx).Old_Key_ID;
 
-         when Read_Leaf_Node_For_Client_Pending =>
+         when Read_Client_Data_From_Leaf_Node_Pending =>
+
+            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim)
+            then
+               raise Program_Error;
+            end if;
+
+            return Rkg.Jobs (Idx).New_Key_ID;
+
+         when Write_Client_Data_To_Leaf_Node_Pending =>
 
             if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim)
             then
@@ -3102,6 +3299,25 @@ is
             Rkg.Jobs (Idx).State := Read_Inner_Node_In_Progress;
             return;
 
+         when Read_Client_Data_From_Leaf_Node_Pending =>
+
+            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
+               raise Program_Error;
+            end if;
+
+            Rkg.Jobs (Idx).State :=
+               Read_Client_Data_From_Leaf_Node_In_Progress;
+            return;
+
+         when Write_Client_Data_To_Leaf_Node_Pending =>
+
+            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
+               raise Program_Error;
+            end if;
+
+            Rkg.Jobs (Idx).State := Write_Client_Data_To_Leaf_Node_In_Progress;
+            return;
+
          when Read_Leaf_Node_Pending =>
 
             if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
@@ -3109,15 +3325,6 @@ is
             end if;
 
             Rkg.Jobs (Idx).State := Read_Leaf_Node_In_Progress;
-            return;
-
-         when Read_Leaf_Node_For_Client_Pending =>
-
-            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
-               raise Program_Error;
-            end if;
-
-            Rkg.Jobs (Idx).State := Read_Leaf_Node_For_Client_In_Progress;
             return;
 
          when Write_Leaf_Node_Pending =>
@@ -3385,13 +3592,23 @@ is
             Rkg.Jobs (Idx).Generated_Prim := Prim;
             return;
 
-         when Read_Leaf_Node_For_Client_In_Progress =>
+         when Read_Client_Data_From_Leaf_Node_In_Progress =>
 
             if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
                raise Program_Error;
             end if;
 
-            Rkg.Jobs (Idx).State := Read_Leaf_Node_For_Client_Completed;
+            Rkg.Jobs (Idx).State := Read_Client_Data_From_Leaf_Node_Completed;
+            Rkg.Jobs (Idx).Generated_Prim := Prim;
+            return;
+
+         when Write_Client_Data_To_Leaf_Node_In_Progress =>
+
+            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
+               raise Program_Error;
+            end if;
+
+            Rkg.Jobs (Idx).State := Write_Client_Data_To_Leaf_Node_Completed;
             Rkg.Jobs (Idx).Generated_Prim := Prim;
             return;
 
