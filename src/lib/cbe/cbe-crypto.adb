@@ -7,7 +7,6 @@
 --
 
 pragma Ada_2012;
-with CBE.Debug;
 
 package body CBE.Crypto
 with SPARK_Mode
@@ -154,7 +153,6 @@ is
 
             case Primitive.Tag (Prim) is
             when Primitive.Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data =>
-               Debug.Print_String ("Crypto OECD_Submitted");
                Obj.Jobs (Job_Idx).State := OECD_Submitted;
                Obj.Jobs (Job_Idx).Submitted_Prim := Prim;
                Obj.Jobs (Job_Idx).Req := Req;
@@ -601,7 +599,6 @@ is
             Blk_Nr => Primitive.Block_Number (Job.Submitted_Prim),
             Idx    => Primitive.Index_Type (Job_Idx));
 
-         Debug.Print_String ("Crypto OECD_Obtain_Data_Pending");
          Job.State := OECD_Obtain_Data_Pending;
          Progress := True;
 
@@ -618,7 +615,6 @@ is
             Blk_Nr => Primitive.Block_Number (Job.Submitted_Prim),
             Idx    => Primitive.Index_Type (Job_Idx));
 
-         Debug.Print_String ("Crypto OECD_Encrypt_Data_Pending");
          Job.State := OECD_Encrypt_Data_Pending;
          Progress := True;
 
@@ -628,7 +624,6 @@ is
             raise Program_Error;
          end if;
 
-         Debug.Print_String ("Crypto OECD_Completed");
          Primitive.Success (Job.Submitted_Prim, True);
          Job.State := OECD_Completed;
          Progress := True;
@@ -744,12 +739,10 @@ is
 
       when OECD_Encrypt_Data_Pending =>
 
-         Debug.Print_String ("Crypto OECD_Encrypt_Data_In_Progress");
          Obj.Jobs (Job_Idx).State := OECD_Encrypt_Data_In_Progress;
 
       when OECD_Obtain_Data_Pending =>
 
-         Debug.Print_String ("Crypto OECD_Obtain_Data_In_Progress");
          Obj.Jobs (Job_Idx).State := OECD_Obtain_Data_In_Progress;
 
       when others =>
@@ -892,7 +885,6 @@ is
 
       when OECD_Encrypt_Data_In_Progress =>
 
-         Debug.Print_String ("Crypto OECD_Encrypt_Data_Completed");
          Obj.Jobs (Job_Idx).State := OECD_Encrypt_Data_Completed;
          Primitive.Success (Obj.Jobs (Job_Idx).Generated_Prim, Success);
 
@@ -923,7 +915,6 @@ is
 
       when OECD_Obtain_Data_In_Progress =>
 
-         Debug.Print_String ("Crypto OECD_Obtain_Data_Completed");
          Obj.Jobs (Job_Idx).State := OECD_Obtain_Data_Completed;
          Primitive.Success (Obj.Jobs (Job_Idx).Generated_Prim, Success);
 
