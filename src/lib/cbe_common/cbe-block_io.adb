@@ -7,6 +7,7 @@
 --
 
 pragma Ada_2012;
+with CBE.Debug;
 
 package body CBE.Block_IO
 with SPARK_Mode
@@ -98,6 +99,7 @@ is
                Obj.Entries (Idx).Submitted_Prim := Prim;
                Obj.Entries (Idx).Req := Req;
                Obj.Entries (Idx).VBA := VBA;
+               Debug.Print_String ("Blk_IO Write_Client_Data_Submitted");
                Obj.Entries (Idx).State := Write_Client_Data_Submitted;
                Obj.Used_Entries := Obj.Used_Entries + 1;
                Obj.Entries (Idx).Key_ID := Key_ID;
@@ -583,6 +585,10 @@ is
          when Write_Client_Data_Obtain_And_Encrypt_Data_Pending =>
 
             if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
+
+               Debug.Print_String (
+                  "Blk_IO " &
+                  "Write_Client_Data_Obtain_And_Encrypt_Data_In_Progress");
                Obj.Entries (Idx).State :=
                   Write_Client_Data_Obtain_And_Encrypt_Data_In_Progress;
                return;
@@ -640,6 +646,9 @@ is
 
       when Write_Client_Data_Write_Data_Pending =>
 
+         Debug.Print_String (
+            "Blk_IO " &
+            "Write_Client_Data_Write_Data_In_Progress");
          Obj.Entries (Data_Idx).State :=
             Write_Client_Data_Write_Data_In_Progress;
 
@@ -675,6 +684,10 @@ is
       when Write_Client_Data_Write_Data_In_Progress =>
 
          Primitive.Success (Obj.Entries (Data_Idx).Generated_Prim, Success);
+
+         Debug.Print_String (
+            "Blk_IO " &
+            "Write_Client_Data_Write_Data_Completed");
          Obj.Entries (Data_Idx).State :=
             Write_Client_Data_Write_Data_Completed;
 
@@ -713,6 +726,9 @@ is
 
             if Primitive.Equal (Prim, Obj.Entries (Idx).Generated_Prim) then
                Obj.Entries (Idx).Generated_Prim := Prim;
+               Debug.Print_String (
+                  "Blk_IO " &
+                  "Write_Client_Data_Obtain_And_Encrypt_Data_Completed");
                Obj.Entries (Idx).State :=
                   Write_Client_Data_Obtain_And_Encrypt_Data_Completed;
                return;
@@ -809,6 +825,8 @@ is
             Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
             Idx    => Primitive.Index_Type (Entry_Idx));
 
+         Debug.Print_String (
+            "Blk_IO Write_Client_Data_Obtain_And_Encrypt_Data_Pending");
          Entr.State := Write_Client_Data_Obtain_And_Encrypt_Data_Pending;
          Progress := True;
 
@@ -825,6 +843,7 @@ is
             Blk_Nr => Primitive.Block_Number (Entr.Submitted_Prim),
             Idx    => Primitive.Index_Type (Entry_Idx));
 
+         Debug.Print_String ("Blk_IO Write_Client_Data_Write_Data_Pending");
          Entr.State := Write_Client_Data_Write_Data_Pending;
          Progress := True;
 
@@ -835,6 +854,7 @@ is
          end if;
 
          Primitive.Success (Entr.Submitted_Prim, True);
+         Debug.Print_String ("Blk_IO Write_Client_Data_Completed");
          Entr.State := Write_Client_Data_Completed;
          Progress := True;
 
