@@ -1876,7 +1876,10 @@ is
                   Obj.Request_Pool_Obj,
                   Pool_Idx_Slot_Content (Primitive.Pool_Idx_Slot (Prim)));
 
-            when Primitive.Tag_Pool_SB_Ctrl_Read_VBA =>
+            when
+               Primitive.Tag_Pool_SB_Ctrl_Read_VBA |
+               Primitive.Tag_Pool_SB_Ctrl_Write_VBA
+            =>
 
                Superblock_Control.Submit_Primitive_Req (
                   Obj.SB_Ctrl, Prim,

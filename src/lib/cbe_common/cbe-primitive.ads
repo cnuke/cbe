@@ -64,6 +64,7 @@ is
       Tag_SB_Ctrl_TA_Decrypt_Key,
       Tag_SB_Ctrl_Cache,
       Tag_SB_Ctrl_VBD_Rkg_Read_VBA,
+      Tag_SB_Ctrl_VBD_Rkg_Write_VBA,
       Tag_SB_Ctrl_VBD_Rkg_Rekey_VBA,
       Tag_SB_Ctrl_VBD_Rkg_VBD_Ext_Step,
       Tag_SB_Ctrl_FT_Rszg_FT_Ext_Step,
@@ -161,6 +162,7 @@ is
       when Tag_SB_Ctrl_Cache => "SB_Ctrl_Cache",
       when Tag_SB_Ctrl_VBD_Rkg_Rekey_VBA => "SB_Ctrl_VBD_Rkg_Rekey_VBA",
       when Tag_SB_Ctrl_VBD_Rkg_Read_VBA => "SB_Ctrl_VBD_Rkg_Read_VBA",
+      when Tag_SB_Ctrl_VBD_Rkg_Write_VBA => "SB_Ctrl_VBD_Rkg_Write_VBA",
       when Tag_SB_Ctrl_VBD_Rkg_VBD_Ext_Step => "SB_Ctrl_VBD_Rkg_VBD_Ext_Step",
       when Tag_SB_Ctrl_FT_Rszg_FT_Ext_Step => "SB_Ctrl_FT_Rszg_FT_Ext_Step",
       when Tag_SB_Ctrl_Crypto_Add_Key => "SB_Ctrl_Crypto_Add_Key",
@@ -406,6 +408,9 @@ is
    return Boolean;
 
    function Has_Tag_SB_Ctrl_VBD_Rkg_Read_VBA (Obj : Object_Type)
+   return Boolean;
+
+   function Has_Tag_SB_Ctrl_VBD_Rkg_Write_VBA (Obj : Object_Type)
    return Boolean;
 
    function Has_Tag_SB_Ctrl_VBD_Rkg_VBD_Ext_Step (Obj : Object_Type)
