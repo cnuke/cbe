@@ -606,7 +606,7 @@ private
 
    procedure Execute_IO (
       Obj               : in out Object_Type;
-      IO_Buf            : in     Block_IO.Data_Type;
+      IO_Buf            :        Block_IO.Data_Type;
       Crypto_Cipher_Buf : in out Crypto.Cipher_Buffer_Type;
       Progress          : in out Boolean);
 

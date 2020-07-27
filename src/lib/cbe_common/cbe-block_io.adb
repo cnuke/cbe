@@ -8,9 +8,81 @@
 
 pragma Ada_2012;
 
+with SHA256_4K;
+
 package body CBE.Block_IO
 with SPARK_Mode
 is
+   --
+   --  CBE_Hash_From_SHA256_4K_Hash
+   --
+   procedure CBE_Hash_From_SHA256_4K_Hash (
+      CBE_Hash : out Hash_Type;
+      SHA_Hash :     SHA256_4K.Hash_Type);
+
+   --
+   --  SHA256_4K_Data_From_CBE_Data
+   --
+   procedure SHA256_4K_Data_From_CBE_Data (
+      SHA_Data : out SHA256_4K.Data_Type;
+      CBE_Data :     Block_Data_Type);
+
+   --
+   --  Hash_Of_Data_Blk
+   --
+   function Hash_Of_Data_Blk (CBE_Data : Block_Data_Type)
+   return Hash_Type;
+
+   --
+   --  CBE_Hash_From_SHA256_4K_Hash
+   --
+   procedure CBE_Hash_From_SHA256_4K_Hash (
+      CBE_Hash : out Hash_Type;
+      SHA_Hash :     SHA256_4K.Hash_Type)
+   is
+      SHA_Idx : SHA256_4K.Hash_Index_Type := SHA256_4K.Hash_Index_Type'First;
+   begin
+      for CBE_Idx in CBE_Hash'Range loop
+         CBE_Hash (CBE_Idx) := Byte_Type (SHA_Hash (SHA_Idx));
+         if CBE_Idx < CBE_Hash'Last then
+            SHA_Idx := SHA_Idx + 1;
+         end if;
+      end loop;
+   end CBE_Hash_From_SHA256_4K_Hash;
+
+   --
+   --  SHA256_4K_Data_From_CBE_Data
+   --
+   procedure SHA256_4K_Data_From_CBE_Data (
+      SHA_Data : out SHA256_4K.Data_Type;
+      CBE_Data :     Block_Data_Type)
+   is
+      CBE_Idx : Block_Data_Index_Type := Block_Data_Index_Type'First;
+   begin
+      for SHA_Idx in SHA_Data'Range loop
+         SHA_Data (SHA_Idx) := SHA256_4K.Byte (CBE_Data (CBE_Idx));
+         if SHA_Idx < SHA_Data'Last then
+            CBE_Idx := CBE_Idx + 1;
+         end if;
+      end loop;
+   end SHA256_4K_Data_From_CBE_Data;
+
+   --
+   --  Hash_Of_Data_Blk
+   --
+   function Hash_Of_Data_Blk (CBE_Data : Block_Data_Type)
+   return Hash_Type
+   is
+      SHA_Hash : SHA256_4K.Hash_Type;
+      SHA_Data : SHA256_4K.Data_Type;
+      CBE_Hash : Hash_Type;
+   begin
+      SHA256_4K_Data_From_CBE_Data (SHA_Data, CBE_Data);
+      SHA256_4K.Hash (SHA_Data, SHA_Hash);
+      CBE_Hash_From_SHA256_4K_Hash (CBE_Hash, SHA_Hash);
+      return CBE_Hash;
+   end Hash_Of_Data_Blk;
+
    function Invalid_Entry return Entry_Type
    is (
      Orig_Tag       => Primitive.Tag_Invalid,
@@ -259,9 +331,39 @@ is
          end if;
       end loop;
 
-      --  XXX precondition
       raise Program_Error;
    end Peek_Completed_Hash;
+
+   --
+   --  Peek_Completed_Hash_New
+   --
+   function Peek_Completed_Hash_New (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Hash_Type
+   is
+   begin
+
+      Find_Corresponding_Entry :
+      for Idx in Obj.Entries'Range loop
+
+         case Obj.Entries (Idx).State is
+         when Write_Client_Data_Completed =>
+
+            if Primitive.Equal (Prim, Obj.Entries (Idx).Submitted_Prim) then
+               return Obj.Entries (Idx).Hash;
+            end if;
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop Find_Corresponding_Entry;
+      raise Program_Error;
+
+   end Peek_Completed_Hash_New;
 
    procedure Drop_Completed_Primitive (
       Obj  : in out Object_Type;
@@ -307,6 +409,7 @@ is
    --
    procedure Execute (
       Obj      : in out Object_Type;
+      Data_Buf :        Data_Type;
       Progress : in out Boolean)
    is
    begin
@@ -337,7 +440,8 @@ is
             Write_Client_Data_Obtain_And_Encrypt_Data_Completed
          =>
 
-            Execute_Write_Client_Data (Obj.Entries (Idx), Idx, Progress);
+            Execute_Write_Client_Data (
+               Obj.Entries (Idx), Idx, Data_Buf, Progress);
 
          when others =>
 
@@ -796,6 +900,7 @@ is
    procedure Execute_Write_Client_Data (
       Entr      : in out Entry_Type;
       Entry_Idx :        Entries_Index_Type;
+      Data_Buf  :        Data_Type;
       Progress  : in out Boolean)
    is
    begin
@@ -820,6 +925,7 @@ is
             raise Program_Error;
          end if;
 
+         Entr.Hash := Hash_Of_Data_Blk (Data_Buf (Entry_Idx));
          Entr.Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
             Op     => Write,
             Succ   => False,

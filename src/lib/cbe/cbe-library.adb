@@ -3416,17 +3416,12 @@ is
 
    procedure Execute_IO (
       Obj               : in out Object_Type;
-      IO_Buf            : in     Block_IO.Data_Type;
+      IO_Buf            :        Block_IO.Data_Type;
       Crypto_Cipher_Buf : in out Crypto.Cipher_Buffer_Type;
       Progress          : in out Boolean)
    is
    begin
-      --
-      --  This module handles all the block backend I/O and has to
-      --  work with all most all modules. IT uses the 'Tag' field
-      --  to differentiate the modules.
-      --
-      Block_IO.Execute (Obj.IO_Obj, Progress);
+      Block_IO.Execute (Obj.IO_Obj, IO_Buf, Progress);
 
       Loop_Generated_Crypto_Prims :
       loop

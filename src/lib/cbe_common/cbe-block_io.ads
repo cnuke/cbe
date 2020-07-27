@@ -138,6 +138,14 @@ is
    return Hash_Type;
 
    --
+   --  Peek_Completed_Hash_New
+   --
+   function Peek_Completed_Hash_New (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Hash_Type;
+
+   --
    --  Take the next completed primitive
    --
    --  This method must only be called after executing
@@ -169,6 +177,7 @@ is
    --
    procedure Execute (
       Obj      : in out Object_Type;
+      Data_Buf :        Data_Type;
       Progress : in out Boolean);
 
    --
@@ -328,6 +337,7 @@ private
    procedure Execute_Write_Client_Data (
       Entr      : in out Entry_Type;
       Entry_Idx :        Entries_Index_Type;
+      Data_Buf  :        Data_Type;
       Progress  : in out Boolean);
 
 end CBE.Block_IO;
