@@ -1978,7 +1978,8 @@ is
    procedure Execute_Write_VBA (
       Job           : in out Job_Type;
       Job_Idx       :        Jobs_Index_Type;
-      SB            :        Superblock_Type;
+      SB            : in out Superblock_Type;
+      Curr_Gen      :        Generation_Type;
       Progress      : in out Boolean)
    is
    begin
@@ -2025,6 +2026,25 @@ is
          Progress := True;
 
       when Write_VBA_At_VBD_Completed =>
+
+         if SB.Snapshots (SB.Curr_Snap).Gen < Curr_Gen then
+
+            SB.Curr_Snap :=
+               Idx_Of_Invalid_Or_Lowest_Gen_Evictable_Snap (
+                  SB.Snapshots, Curr_Gen, SB.Last_Secured_Generation);
+
+            SB.Snapshots (SB.Curr_Snap) := Job.Snapshots (0);
+            SB.Snapshots (SB.Curr_Snap).Keep := False;
+
+         elsif SB.Snapshots (SB.Curr_Snap).Gen = Curr_Gen then
+
+            SB.Snapshots (SB.Curr_Snap) := Job.Snapshots (0);
+
+         else
+
+            raise Program_Error;
+
+         end if;
 
          Primitive.Success (
             Job.Submitted_Prim,
@@ -2631,7 +2651,7 @@ is
 
          when Write_VBA =>
 
-            Execute_Write_VBA (Ctrl.Jobs (Idx), Idx, SB, Progress);
+            Execute_Write_VBA (Ctrl.Jobs (Idx), Idx, SB, Curr_Gen, Progress);
 
          when Sync =>
 
@@ -4249,17 +4269,6 @@ is
             end if;
             raise Program_Error;
 
-         when Write_VBA_At_VBD_In_Progress =>
-
-            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
-
-               Ctrl.Jobs (Idx).State := Write_VBA_At_VBD_Completed;
-               Ctrl.Jobs (Idx).Generated_Prim := Prim;
-               return;
-
-            end if;
-            raise Program_Error;
-
          when Sync_Cache_In_Progress =>
 
             if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
@@ -4373,5 +4382,41 @@ is
       raise Program_Error;
 
    end Mark_Generated_Prim_Complete;
+
+   --
+   --  Mark_Generated_Prim_Complete_Snap
+   --
+   procedure Mark_Generated_Prim_Complete_Snap (
+      Ctrl : in out Control_Type;
+      Prim :        Primitive.Object_Type;
+      Snap :        Snapshot_Type)
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+      if Ctrl.Jobs (Idx).Operation /= Invalid then
+
+         case Ctrl.Jobs (Idx).State is
+         when Write_VBA_At_VBD_In_Progress =>
+
+            if Primitive.Equal (Prim, Ctrl.Jobs (Idx).Generated_Prim) then
+
+               Ctrl.Jobs (Idx).State := Write_VBA_At_VBD_Completed;
+               Ctrl.Jobs (Idx).Snapshots (0) := Snap;
+               return;
+
+            end if;
+            raise Program_Error;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      end if;
+      raise Program_Error;
+
+   end Mark_Generated_Prim_Complete_Snap;
 
 end CBE.Superblock_Control;

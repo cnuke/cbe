@@ -2508,8 +2508,10 @@ is
 
             when Primitive.Tag_SB_Ctrl_VBD_Rkg_Write_VBA =>
 
-               Superblock_Control.Mark_Generated_Prim_Complete (
-                  Obj.SB_Ctrl, Prim);
+               Superblock_Control.Mark_Generated_Prim_Complete_Snap (
+                  Obj.SB_Ctrl,
+                  Prim,
+                  VBD_Rekeying.Peek_Completed_Snap (Obj.VBD_Rkg, Prim));
 
                VBD_Rekeying.Drop_Completed_Primitive (Obj.VBD_Rkg, Prim);
                Progress := True;
@@ -2564,13 +2566,25 @@ is
                not VBD_Rekeying.Primitive_Acceptable (Obj.VBD_Rkg);
 
             case Primitive.Tag (Prim) is
-            when
-               Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA |
-               Primitive.Tag_SB_Ctrl_VBD_Rkg_Write_VBA
-            =>
+            when Primitive.Tag_SB_Ctrl_VBD_Rkg_Read_VBA =>
 
-               VBD_Rekeying.Submit_Primitive_Access_VBA (
+               VBD_Rekeying.Submit_Primitive_Read_VBA (
                   Obj.VBD_Rkg, Prim,
+                  Superblock_Control.Peek_Generated_Req (Obj.SB_Ctrl, Prim),
+                  Superblock_Control.Peek_Generated_Snapshot (
+                     Obj.SB_Ctrl, Prim, Obj.Superblock),
+                  Superblock_Control.Peek_Generated_Snapshots_Degree (
+                     Obj.SB_Ctrl, Prim, Obj.Superblock),
+                  Superblock_Control.Peek_Generated_Key_ID (
+                     Obj.SB_Ctrl, Prim));
+
+               Superblock_Control.Drop_Generated_Primitive (Obj.SB_Ctrl, Prim);
+               Progress := True;
+
+            when Primitive.Tag_SB_Ctrl_VBD_Rkg_Write_VBA =>
+
+               VBD_Rekeying.Submit_Primitive_Write_VBA (
+                  Obj.VBD_Rkg, Prim, Obj.Cur_Gen,
                   Superblock_Control.Peek_Generated_Req (Obj.SB_Ctrl, Prim),
                   Superblock_Control.Peek_Generated_Snapshot (
                      Obj.SB_Ctrl, Prim, Obj.Superblock),

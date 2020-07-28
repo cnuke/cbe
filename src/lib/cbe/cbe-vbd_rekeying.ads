@@ -50,11 +50,23 @@ is
       New_Key_ID       :        Key_ID_Type);
 
    --
-   --  Submit_Primitive_Access_VBA
+   --  Submit_Primitive_Read_VBA
    --
-   procedure Submit_Primitive_Access_VBA (
+   procedure Submit_Primitive_Read_VBA (
       Rkg              : in out Rekeying_Type;
       Prim             :        Primitive.Object_Type;
+      Req              :        Request.Object_Type;
+      Snapshot         :        Snapshot_Type;
+      Snapshots_Degree :        Tree_Degree_Type;
+      Key_ID           :        Key_ID_Type);
+
+   --
+   --  Submit_Primitive_Write_VBA
+   --
+   procedure Submit_Primitive_Write_VBA (
+      Rkg              : in out Rekeying_Type;
+      Prim             :        Primitive.Object_Type;
+      Curr_Gen         :        Generation_Type;
       Req              :        Request.Object_Type;
       Snapshot         :        Snapshot_Type;
       Snapshots_Degree :        Tree_Degree_Type;
@@ -86,6 +98,14 @@ is
       Rkg  : Rekeying_Type;
       Prim : Primitive.Object_Type)
    return Snapshots_Type;
+
+   --
+   --  Peek_Completed_Snap
+   --
+   function Peek_Completed_Snap (
+      Rkg  : Rekeying_Type;
+      Prim : Primitive.Object_Type)
+   return Snapshot_Type;
 
    --
    --  Peek_Completed_Nr_Of_Leaves
@@ -500,6 +520,22 @@ private
    return Interfaces.Unsigned_32;
 
    --
+   --  Set_Args_For_Alloc_Of_New_PBAs_For_Branch_Of_Written_VBA
+   --
+   procedure Set_Args_For_Alloc_Of_New_PBAs_For_Branch_Of_Written_VBA (
+      Curr_Gen        :     Generation_Type;
+      Snapshot        :     Snapshot_Type;
+      Snapshot_Degree :     Tree_Degree_Type;
+      VBA             :     Virtual_Block_Address_Type;
+      Prim_Idx        :     Primitive.Index_Type;
+      T1_Blks         :     Type_1_Node_Blocks_Type;
+      T1_Walk         : out Type_1_Node_Walk_Type;
+      New_PBAs        : out Write_Back.New_PBAs_Type;
+      Nr_Of_Blks      : out Number_Of_Blocks_Type;
+      Free_Gen        : out Generation_Type;
+      Prim            : out Primitive.Object_Type);
+
+   --
    --  Set_Args_For_Alloc_Of_New_PBAs_For_Rekeying
    --
    procedure Set_Args_For_Alloc_Of_New_PBAs_For_Rekeying (
@@ -563,18 +599,9 @@ private
       Nr_Of_PBAs       : in out Number_Of_Blocks_Type);
 
    --
-   --  Idx_Of_Invalid_Or_Lowest_Gen_Evictable_Snap
+   --  Set_New_PBAs_Identical_To_Current_PBAs
    --
-   function Idx_Of_Invalid_Or_Lowest_Gen_Evictable_Snap (
-      Snapshots        : Snapshots_Type;
-      Curr_Gen         : Generation_Type;
-      Last_Secured_Gen : Generation_Type)
-   return Snapshots_Index_Type;
-
-   --
-   --  Set_New_PBAs_For_Write_Back_Of_New_Root_Branch
-   --
-   procedure Set_New_PBAs_For_Write_Back_Of_New_Root_Branch (
+   procedure Set_New_PBAs_Identical_To_Current_PBAs (
       Snapshot          :     Snapshot_Type;
       Snapshot_Degree   :     Tree_Degree_Type;
       VBA               :     Virtual_Block_Address_Type;
@@ -605,5 +632,17 @@ private
       Job_State   : out Job_State_Type;
       Progress    : out Boolean;
       Prim        : out Primitive.Object_Type);
+
+   --
+   --  Update_Nodes_Of_Branch_Of_Written_VBA
+   --
+   procedure Update_Nodes_Of_Branch_Of_Written_VBA (
+      Snapshot        : in out Snapshot_Type;
+      Snapshot_Degree :        Tree_Degree_Type;
+      VBA             :        Virtual_Block_Address_Type;
+      New_PBAs        :        Write_Back.New_PBAs_Type;
+      Leaf_Hash       :        Hash_Type;
+      Curr_Gen        :        Generation_Type;
+      T1_Blks         : in out Type_1_Node_Blocks_Type);
 
 end CBE.VBD_Rekeying;

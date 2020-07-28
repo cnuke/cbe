@@ -412,6 +412,14 @@ is
       Snapshots :        Snapshots_Type);
 
    --
+   --  Mark_Generated_Prim_Complete_Snap
+   --
+   procedure Mark_Generated_Prim_Complete_Snap (
+      Ctrl : in out Control_Type;
+      Prim :        Primitive.Object_Type;
+      Snap :        Snapshot_Type);
+
+   --
    --  Mark_Generated_Prim_Complete
    --
    procedure Mark_Generated_Prim_Complete (
@@ -644,7 +652,8 @@ private
    procedure Execute_Write_VBA (
       Job           : in out Job_Type;
       Job_Idx       :        Jobs_Index_Type;
-      SB            :        Superblock_Type;
+      SB            : in out Superblock_Type;
+      Curr_Gen      :        Generation_Type;
       Progress      : in out Boolean);
 
    --
