@@ -298,6 +298,14 @@ is
       Prim     :        Primitive.Object_Type;
       New_PBAs :        Write_Back.New_PBAs_Type);
 
+   --
+   --  Mark_Generated_Prim_Completed_Hash
+   --
+   procedure Mark_Generated_Prim_Completed_Hash (
+      Rkg  : in out Rekeying_Type;
+      Prim :        Primitive.Object_Type;
+      Hash :        Hash_Type);
+
 private
 
    type Job_Operation_Type is (
@@ -397,6 +405,7 @@ private
       New_PBAs         : Write_Back.New_PBAs_Type;
       PBA              : Physical_Block_Address_Type;
       Req              : Request.Object_Type;
+      Hash             : Hash_Type;
       Nr_Of_PBAs       : Number_Of_Blocks_Type;
       Nr_Of_Blks       : Number_Of_Blocks_Type;
       Nr_Of_Leaves     : Tree_Number_Of_Leafs_Type;

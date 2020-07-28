@@ -174,6 +174,7 @@ is
             Nr_Of_Leaves => Tree_Number_Of_Leafs_Type'First,
             Curr_Gen => Generation_Type'First,
             Last_Secured_Gen => Generation_Type'First,
+            Hash => (others => Byte_Type'First),
             Free_Gen => Generation_Type'First);
       end loop Initialize_Each_Job;
    end Initialize_Rekeying;
@@ -3450,6 +3451,43 @@ is
    end Mark_Generated_Prim_Completed_Plain_Data;
 
    --
+   --  Mark_Generated_Prim_Completed_Hash
+   --
+   procedure Mark_Generated_Prim_Completed_Hash (
+      Rkg  : in out Rekeying_Type;
+      Prim :        Primitive.Object_Type;
+      Hash :        Hash_Type)
+   is
+      Idx : constant Jobs_Index_Type :=
+         Jobs_Index_Type (Primitive.Index (Prim));
+   begin
+
+      if Rkg.Jobs (Idx).Operation /= Invalid then
+
+         case Rkg.Jobs (Idx).State is
+         when Write_Client_Data_To_Leaf_Node_In_Progress =>
+
+            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
+               raise Program_Error;
+            end if;
+
+            Rkg.Jobs (Idx).State := Write_Client_Data_To_Leaf_Node_Completed;
+            Rkg.Jobs (Idx).Generated_Prim := Prim;
+            Rkg.Jobs (Idx).Hash := Hash;
+            return;
+
+         when others =>
+
+            raise Program_Error;
+
+         end case;
+
+      end if;
+      raise Program_Error;
+
+   end Mark_Generated_Prim_Completed_Hash;
+
+   --
    --  Mark_Generated_Prim_Completed_Cipher_Data
    --
    procedure Mark_Generated_Prim_Completed_Cipher_Data (
@@ -3599,16 +3637,6 @@ is
             end if;
 
             Rkg.Jobs (Idx).State := Read_Client_Data_From_Leaf_Node_Completed;
-            Rkg.Jobs (Idx).Generated_Prim := Prim;
-            return;
-
-         when Write_Client_Data_To_Leaf_Node_In_Progress =>
-
-            if not Primitive.Equal (Prim, Rkg.Jobs (Idx).Generated_Prim) then
-               raise Program_Error;
-            end if;
-
-            Rkg.Jobs (Idx).State := Write_Client_Data_To_Leaf_Node_Completed;
             Rkg.Jobs (Idx).Generated_Prim := Prim;
             return;
 

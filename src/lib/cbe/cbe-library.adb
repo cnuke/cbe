@@ -3491,13 +3491,20 @@ is
             exit Loop_IO_Completed_Prims when not Primitive.Valid (Prim);
 
             case Primitive.Tag (Prim) is
-            when
-               Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data |
-               Primitive.Tag_VBD_Rkg_Blk_IO_Write_Client_Data
-            =>
+            when Primitive.Tag_VBD_Rkg_Blk_IO_Read_Client_Data =>
 
                VBD_Rekeying.Mark_Generated_Prim_Completed (
                   Obj.VBD_Rkg, Prim);
+
+               Block_IO.Drop_Completed_Primitive_New (Obj.IO_Obj, Prim);
+               Progress := True;
+
+            when Primitive.Tag_VBD_Rkg_Blk_IO_Write_Client_Data =>
+
+               VBD_Rekeying.Mark_Generated_Prim_Completed_Hash (
+                  Obj.VBD_Rkg,
+                  Prim,
+                  Block_IO.Peek_Completed_Hash_New (Obj.IO_Obj, Prim));
 
                Block_IO.Drop_Completed_Primitive_New (Obj.IO_Obj, Prim);
                Progress := True;
