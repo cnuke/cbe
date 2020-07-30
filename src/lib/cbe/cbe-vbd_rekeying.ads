@@ -697,9 +697,9 @@ private
    --  Mark_Job_Successfully_Completed
    --
    procedure Mark_Job_Successfully_Completed (
-      State            : out Job_State_Type;
-      Submitted_Prim   : out Primitive.Object_Type;
-      Progress         : out Boolean);
+      State            :    out Job_State_Type;
+      Submitted_Prim   : in out Primitive.Object_Type;
+      Progress         :    out Boolean);
 
    --
    --  Check_That_Primitive_Was_Successful

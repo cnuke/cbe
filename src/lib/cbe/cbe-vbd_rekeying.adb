@@ -1649,7 +1649,7 @@ is
       Nr_Of_Blks := 0;
 
       For_Each_Tree_Lvl :
-      for Lvl_Idx in Tree_Level_Index_Type loop
+      for Lvl_Idx in New_PBAs'Range loop
 
          if Lvl_Idx > Snapshot.Max_Level then
 
@@ -1668,6 +1668,7 @@ is
 
             else
 
+               New_PBAs (Lvl_Idx) := Physical_Block_Address_Type'First;
                raise Program_Error;
 
             end if;
@@ -1700,6 +1701,7 @@ is
 
                else
 
+                  New_PBAs (Lvl_Idx) := Physical_Block_Address_Type'First;
                   raise Program_Error;
 
                end if;
@@ -2345,9 +2347,9 @@ is
    --  Mark_Job_Successfully_Completed
    --
    procedure Mark_Job_Successfully_Completed (
-      State            : out Job_State_Type;
-      Submitted_Prim   : out Primitive.Object_Type;
-      Progress         : out Boolean)
+      State            :    out Job_State_Type;
+      Submitted_Prim   : in out Primitive.Object_Type;
+      Progress         :    out Boolean)
    is
    begin
 
