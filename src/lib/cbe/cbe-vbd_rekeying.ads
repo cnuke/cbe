@@ -506,14 +506,6 @@ private
       Progress :    out Boolean);
 
    --
-   --  Execute_Write_VBA_Read_Inner_Node_Completed
-   --
-   procedure Execute_Write_VBA_Read_Inner_Node_Completed (
-      Job      : in out Job_Type;
-      Job_Idx  :        Jobs_Index_Type;
-      Progress :    out Boolean);
-
-   --
    --  Log_2
    --
    function  Log_2 (Value : Interfaces.Unsigned_32)
@@ -523,17 +515,17 @@ private
    --  Set_Args_For_Alloc_Of_New_PBAs_For_Branch_Of_Written_VBA
    --
    procedure Set_Args_For_Alloc_Of_New_PBAs_For_Branch_Of_Written_VBA (
-      Curr_Gen        :     Generation_Type;
-      Snapshot        :     Snapshot_Type;
-      Snapshot_Degree :     Tree_Degree_Type;
-      VBA             :     Virtual_Block_Address_Type;
-      Prim_Idx        :     Primitive.Index_Type;
-      T1_Blks         :     Type_1_Node_Blocks_Type;
-      T1_Walk         : out Type_1_Node_Walk_Type;
-      New_PBAs        : out Write_Back.New_PBAs_Type;
-      Nr_Of_Blks      : out Number_Of_Blocks_Type;
-      Free_Gen        : out Generation_Type;
-      Prim            : out Primitive.Object_Type);
+      Curr_Gen         :     Generation_Type;
+      Snapshot         :     Snapshot_Type;
+      Snapshot_Degree  :     Tree_Degree_Type;
+      VBA              :     Virtual_Block_Address_Type;
+      T1_Blks          :     Type_1_Node_Blocks_Type;
+      Prim_Idx         :     Primitive.Index_Type;
+      Free_Gen         : out Generation_Type;
+      T1_Walk          : out Type_1_Node_Walk_Type;
+      State            : out Job_State_Type;
+      Generated_Prim   : out Primitive.Object_Type;
+      Progress         : out Boolean);
 
    --
    --  Set_Args_For_Alloc_Of_New_PBAs_For_Rekeying
@@ -644,5 +636,77 @@ private
       Leaf_Hash       :        Hash_Type;
       Curr_Gen        :        Generation_Type;
       T1_Blks         : in out Type_1_Node_Blocks_Type);
+
+   --
+   --  Check_Hash_Of_Read_Type_1_Node
+   --
+   procedure Check_Hash_Of_Read_Type_1_Node (
+      Snapshot         : Snapshot_Type;
+      Snapshots_Degree : Tree_Degree_Type;
+      T1_Blk_Idx       : Type_1_Node_Blocks_Index_Type;
+      T1_Blks          : Type_1_Node_Blocks_Type;
+      VBA              : Virtual_Block_Address_Type);
+
+   --
+   --  Set_Args_In_Order_To_Read_Type_1_Node
+   --
+   procedure Set_Args_In_Order_To_Read_Type_1_Node (
+      Snapshot         :     Snapshot_Type;
+      Snapshots_Degree :     Tree_Degree_Type;
+      T1_Blks          :     Type_1_Node_Blocks_Type;
+      T1_Blk_Idx       :     Type_1_Node_Blocks_Index_Type;
+      VBA              :     Virtual_Block_Address_Type;
+      Job_Idx          :     Jobs_Index_Type;
+      State            : out Job_State_Type;
+      Generated_Prim   : out Primitive.Object_Type;
+      Progress         : out Boolean);
+
+   --
+   --  Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node
+   --
+   procedure Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node (
+      Snapshots_Degree :     Tree_Degree_Type;
+      T1_Blks          :     Type_1_Node_Blocks_Type;
+      VBA              :     Virtual_Block_Address_Type;
+      Job_Idx          :     Jobs_Index_Type;
+      State            : out Job_State_Type;
+      Generated_Prim   : out Primitive.Object_Type;
+      Progress         : out Boolean);
+
+   --
+   --  Initialize_Args_Of_Operation_Write_VBA
+   --
+   procedure Initialize_Args_Of_Operation_Write_VBA (
+      Submitted_Prim :     Primitive.Object_Type;
+      Snapshots      :     Snapshots_Type;
+      Snapshot_Idx   : out Snapshots_Index_Type;
+      VBA            : out Virtual_Block_Address_Type;
+      T1_Blk_Idx     : out Type_1_Node_Blocks_Index_Type);
+
+   --
+   --  Initialize_New_PBAs_And_Determine_Nr_Of_PBAs_To_Allocate
+   --
+   procedure Initialize_New_PBAs_And_Determine_Nr_Of_PBAs_To_Allocate (
+      Curr_Gen         :     Generation_Type;
+      Snapshot         :     Snapshot_Type;
+      Snapshot_Degree  :     Tree_Degree_Type;
+      VBA              :     Virtual_Block_Address_Type;
+      T1_Blks          :     Type_1_Node_Blocks_Type;
+      New_PBAs         : out Write_Back.New_PBAs_Type;
+      Nr_Of_Blks       : out Number_Of_Blocks_Type);
+
+   --
+   --  Mark_Job_Successfully_Completed
+   --
+   procedure Mark_Job_Successfully_Completed (
+      State            : out Job_State_Type;
+      Submitted_Prim   : out Primitive.Object_Type;
+      Progress         : out Boolean);
+
+   --
+   --  Check_That_Primitive_Was_Successful
+   --
+   procedure Check_That_Primitive_Was_Successful (
+      Prim : Primitive.Object_Type);
 
 end CBE.VBD_Rekeying;
