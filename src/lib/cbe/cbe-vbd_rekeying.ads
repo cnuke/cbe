@@ -665,9 +665,7 @@ private
    --  Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node
    --
    procedure Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node (
-      Snapshots_Degree :     Tree_Degree_Type;
-      T1_Blks          :     Type_1_Node_Blocks_Type;
-      VBA              :     Virtual_Block_Address_Type;
+      New_PBAs         :     Write_Back.New_PBAs_Type;
       Job_Idx          :     Jobs_Index_Type;
       State            : out Job_State_Type;
       Generated_Prim   : out Primitive.Object_Type;

@@ -3315,8 +3315,12 @@ is
 
    end Execute_Writeback;
 
+   --
+   --  Execute_Crypto
+   --
    procedure Execute_Crypto (
       Obj               : in out Object_Type;
+      Blk_IO_Buf        : in out Block_IO.Data_Type;
       Crypto_Plain_Buf  :        Crypto.Plain_Buffer_Type;
       Crypto_Cipher_Buf :        Crypto.Cipher_Buffer_Type;
       Progress          : in out Boolean)
@@ -3358,13 +3362,26 @@ is
                Crypto.Drop_Completed_Primitive (Obj.Crypto_Obj);
                Progress := True;
 
-            when
-               Primitive.Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data |
-               Primitive.Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data
-            =>
+            when Primitive.Tag_Blk_IO_Crypto_Decrypt_And_Supply_Client_Data =>
 
                Block_IO.Mark_Generated_Primitive_Complete_New (
                   Obj.IO_Obj, Prim);
+               Crypto.Drop_Completed_Primitive_New (Obj.Crypto_Obj, Prim);
+               Progress := True;
+
+            when Primitive.Tag_Blk_IO_Crypto_Obtain_And_Encrypt_Client_Data =>
+
+               Blk_IO_Buf (
+                  Crypto.Peek_Completed_Blk_IO_Data_Idx (
+                     Obj.Crypto_Obj, Prim))
+               :=
+                  Crypto_Cipher_Buf (
+                     Crypto.Peek_Completed_Cipher_Buf_Idx (
+                        Obj.Crypto_Obj, Prim));
+
+               Block_IO.Mark_Generated_Primitive_Complete_New (
+                  Obj.IO_Obj, Prim);
+
                Crypto.Drop_Completed_Primitive_New (Obj.Crypto_Obj, Prim);
                Progress := True;
 
@@ -3673,7 +3690,8 @@ is
       Execute_VBD (Obj, Crypto_Plain_Buf, Progress);
       Execute_Cache  (Obj, IO_Buf, Progress);
       Execute_IO     (Obj, IO_Buf, Crypto_Cipher_Buf, Progress);
-      Execute_Crypto (Obj, Crypto_Plain_Buf, Crypto_Cipher_Buf, Progress);
+      Execute_Crypto (
+         Obj, IO_Buf, Crypto_Plain_Buf, Crypto_Cipher_Buf, Progress);
       Execute_Meta_Tree (Obj, Progress);
       Execute_Writeback (Obj, IO_Buf, Crypto_Plain_Buf, Progress);
       Execute_Free_Tree (Obj, Progress);

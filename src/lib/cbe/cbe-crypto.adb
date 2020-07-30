@@ -823,6 +823,68 @@ is
    end Peek_Completed_Primitive;
 
    --
+   --  Peek_Completed_Blk_IO_Data_Idx
+   --
+   function Peek_Completed_Blk_IO_Data_Idx (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Block_IO.Data_Index_Type
+   is
+   begin
+
+      Find_Corresponding_Job :
+      for Idx in Obj.Jobs'Range loop
+
+         case Obj.Jobs (Idx).State is
+         when OECD_Completed =>
+
+            if Primitive.Equal (Prim, Obj.Jobs (Idx).Submitted_Prim) then
+               return Obj.Jobs (Idx).Blk_IO_Data_Idx;
+            end if;
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop Find_Corresponding_Job;
+      raise Program_Error;
+
+   end Peek_Completed_Blk_IO_Data_Idx;
+
+   --
+   --  Peek_Completed_Cipher_Buf_Idx
+   --
+   function Peek_Completed_Cipher_Buf_Idx (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Jobs_Index_Type
+   is
+   begin
+
+      Find_Corresponding_Job :
+      for Idx in Obj.Jobs'Range loop
+
+         case Obj.Jobs (Idx).State is
+         when OECD_Completed =>
+
+            if Primitive.Equal (Prim, Obj.Jobs (Idx).Submitted_Prim) then
+               return Idx;
+            end if;
+
+         when others =>
+
+            null;
+
+         end case;
+
+      end loop Find_Corresponding_Job;
+      raise Program_Error;
+
+   end Peek_Completed_Cipher_Buf_Idx;
+
+   --
    --  Drop_Completed_Primitive
    --
    procedure Drop_Completed_Primitive (Obj : in out Object_Type)

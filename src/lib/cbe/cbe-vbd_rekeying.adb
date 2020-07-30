@@ -2287,25 +2287,19 @@ is
    --  Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node
    --
    procedure Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node (
-      Snapshots_Degree :     Tree_Degree_Type;
-      T1_Blks          :     Type_1_Node_Blocks_Type;
-      VBA              :     Virtual_Block_Address_Type;
+      New_PBAs         :     Write_Back.New_PBAs_Type;
       Job_Idx          :     Jobs_Index_Type;
       State            : out Job_State_Type;
       Generated_Prim   : out Primitive.Object_Type;
       Progress         : out Boolean)
    is
-      Child_Idx : constant Type_1_Node_Block_Index_Type :=
-         Child_Idx_For_VBA (VBA, 1, Snapshots_Degree);
-
-      Child : constant Type_1_Node_Type := T1_Blks (1) (Child_Idx);
    begin
 
       Generated_Prim := Primitive.Valid_Object_No_Pool_Idx (
          Op     => Write,
          Succ   => False,
          Tg     => Primitive.Tag_VBD_Rkg_Blk_IO_Write_Client_Data,
-         Blk_Nr => Block_Number_Type (Child.PBA),
+         Blk_Nr => Block_Number_Type (New_PBAs (0)),
          Idx    => Primitive.Index_Type (Job_Idx));
 
       State := Write_Client_Data_To_Leaf_Node_Pending;
@@ -2448,9 +2442,7 @@ is
             else
 
                Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node (
-                  Snapshots_Degree => Job.Snapshots_Degree,
-                  T1_Blks          => Job.T1_Blks,
-                  VBA              => Job.VBA,
+                  New_PBAs         => Job.New_PBAs,
                   Job_Idx          => Job_Idx,
                   State            => Job.State,
                   Generated_Prim   => Job.Generated_Prim,
@@ -2465,9 +2457,7 @@ is
          Check_That_Primitive_Was_Successful (Job.Generated_Prim);
 
          Set_Args_In_Order_To_Write_Client_Data_To_Leaf_Node (
-            Snapshots_Degree => Job.Snapshots_Degree,
-            T1_Blks          => Job.T1_Blks,
-            VBA              => Job.VBA,
+            New_PBAs         => Job.New_PBAs,
             Job_Idx          => Job_Idx,
             State            => Job.State,
             Generated_Prim   => Job.Generated_Prim,

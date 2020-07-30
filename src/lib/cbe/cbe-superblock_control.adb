@@ -4403,6 +4403,7 @@ is
 
                Ctrl.Jobs (Idx).State := Write_VBA_At_VBD_Completed;
                Ctrl.Jobs (Idx).Snapshots (0) := Snap;
+               Ctrl.Jobs (Idx).Generated_Prim := Prim;
                return;
 
             end if;

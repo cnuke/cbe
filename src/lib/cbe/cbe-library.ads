@@ -598,8 +598,12 @@ private
       Crypto_Plain_Buf : in out Crypto.Plain_Buffer_Type;
       Progress         : in out Boolean);
 
+   --
+   --  Execute_Crypto
+   --
    procedure Execute_Crypto (
       Obj               : in out Object_Type;
+      Blk_IO_Buf        : in out Block_IO.Data_Type;
       Crypto_Plain_Buf  :        Crypto.Plain_Buffer_Type;
       Crypto_Cipher_Buf :        Crypto.Cipher_Buffer_Type;
       Progress          : in out Boolean);

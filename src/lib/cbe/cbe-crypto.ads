@@ -209,6 +209,22 @@ is
    return Primitive.Object_Type;
 
    --
+   --  Peek_Completed_Cipher_Buf_Idx
+   --
+   function Peek_Completed_Cipher_Buf_Idx (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Jobs_Index_Type;
+
+   --
+   --  Peek_Completed_Blk_IO_Data_Idx
+   --
+   function Peek_Completed_Blk_IO_Data_Idx (
+      Obj  : Object_Type;
+      Prim : Primitive.Object_Type)
+   return Block_IO.Data_Index_Type;
+
+   --
    --  Drop_Completed_Primitive
    --
    procedure Drop_Completed_Primitive (Obj : in out Object_Type);
