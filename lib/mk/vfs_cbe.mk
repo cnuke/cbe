@@ -1,7 +1,5 @@
 SRC_CC = vfs.cc
 
-SRC_ADS := dummy.ads
-
 LIBS += spark cbe cbe_cxx sha256_4k external_crypto external_crypto_cxx
 LIBS += external_trust_anchor external_trust_anchor_cxx
 
@@ -11,4 +9,4 @@ SHARED_LIB = yes
 
 CC_CXX_WARN_STRICT :=
 
-LIB_ADAINIT := yes
+include $(REP_DIR)/lib/mk/generate_ada_main_pkg.inc
