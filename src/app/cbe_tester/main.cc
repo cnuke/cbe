@@ -14,7 +14,6 @@
 #include <base/heap.h>
 #include <base/thread.h>
 #include <root/root.h>
-#include <terminal_session/connection.h>
 #include <util/bit_allocator.h>
 
 /* cbe includes */
@@ -32,9 +31,6 @@
 /* cbe-init includes */
 #include <cbe_init/library.h>
 #include <cbe_init/configuration.h>
-
-/* repo includes */
-#include <util/sha256_4k.h>
 
 /* local includes */
 #include <util.h>
