@@ -28,6 +28,7 @@ proc cbe_image_size_mb { } {
 
 append build_components {
 	core init timer
+	server/fs_rom
 	server/lx_block
 	server/lx_fs
 	server/vfs
@@ -80,6 +81,29 @@ append config {
 		</config>
 	</start>
 
+	<start name="passphrase_vfs">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs>
+				<inline name="passphrase"><node passphrase="foobar"/></inline>
+			</vfs>
+			<default-policy root="/" writeable="no"/>
+		</config>
+	</start>
+
+	<start name="passphrase_rom">
+		<binary name="fs_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="passphrase_vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
 	<start name="vfs_trust_anchor" caps="120">
 		<binary name="vfs"/>
 		<resource name="RAM" quantum="16M"/>
@@ -111,13 +135,17 @@ append config {
 
 			<start name="cbe_init_trust_anchor">
 				<resource name="RAM" quantum="4M"/>
-				<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
+				<config use_rom="yes" passphrase="foobar" trust_anchor_dir="/trust_anchor">
 					<vfs>
 						<dir name="trust_anchor">
 							<fs label="ta"/>
 						</dir>
 					</vfs>
 				</config>
+				<route>
+					<service name="ROM" label="passphrase"> <parent label="passphrase"/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
 			</start>
 
 			<start name="cbe_init">
@@ -148,6 +176,7 @@ append config {
 				<child name="vfs_trust_anchor"/>
 			</service>
 			<service name="Block"> <child name="lx_block"/> </service>
+			<service name="ROM" label_last="passphrase"> <child name="passphrase_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -159,7 +188,7 @@ exec rm -rf bin/[cbe_image_file]
 exec truncate -s [cbe_image_size_mb]M bin/[cbe_image_file]
 
 append boot_modules {
-	core init timer lx_block lx_fs sequence
+	core init timer fs_rom lx_block lx_fs sequence
 	vfs vfs.lib.so
 	ld.lib.so spark.lib.so libsparkcrypto.lib.so
 
