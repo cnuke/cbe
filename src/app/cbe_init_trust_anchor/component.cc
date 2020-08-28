@@ -35,24 +35,15 @@ class Main
 
 		Attached_rom_dataspace _config_rom { _env, "config" };
 
+		bool const _use_rom { _config_rom.xml().attribute_value("use_rom", false) };
+
+		Constructible<Attached_rom_dataspace> _passphrase_rom { };
+
 		Vfs::Simple_env   _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs") };
 		Vfs::File_system &_vfs     { _vfs_env.root_dir() };
 
 		using Passphrase = Genode::String<32 + 1>;
-
-		using String_path = Genode::String<256>;
-
-		static String_path _config_ta_dir(Xml_node const &node)
-		{
-			String_path const path =
-				node.attribute_value("trust_anchor_dir", String_path());
-
-			if (!path.valid()) {
-				error("missing mandatory 'trust_anchor_dir' config attribute");
-				throw Missing_config_attribute();
-			}
-			return path;
-		}
+		Passphrase _passphrase { };
 
 		struct Io_response_handler : Vfs::Io_response_handler
 		{
@@ -71,8 +62,8 @@ class Main
 			}
 		};
 
-		enum class State { WRITE, READ, };
-		State _state { State::WRITE };
+		enum class State { WAIT, WRITE, READ, COMPLETE };
+		State _state { State::WAIT };
 
 		struct File
 		{
@@ -94,8 +85,6 @@ class Main
 
 			Genode::Constructible<Util::Io_job> _io_job { };
 			Util::Io_job::Buffer                _io_buffer { };
-
-			Passphrase _passphrase { };
 
 			File(char          const *base_path,
 				 char          const *name,
@@ -131,12 +120,9 @@ class Main
 
 			void write_passphrase(Passphrase const &passphrase)
 			{
-				/* copy */
-				_passphrase = passphrase;
-
 				_io_buffer = {
-					.base = const_cast<char *>(_passphrase.string()),
-					.size = _passphrase.length()
+					.base = const_cast<char *>(passphrase.string()),
+					.size = passphrase.length()
 				};
 
 				_io_job.construct(*_vfs_handle, Util::Io_job::Operation::WRITE,
@@ -195,6 +181,32 @@ class Main
 			File::Completed result { false, false };
 
 			switch (_state) {
+			case State::WAIT:
+			{
+				if (_use_rom) {
+					_passphrase_rom->update();
+
+					Xml_node const &node = _passphrase_rom->xml();
+
+					_passphrase = node.attribute_value("passphrase", Passphrase());
+					if (!_passphrase.valid()) {
+						warning("could not obtain valid passphrase from ROM module");
+						_env.parent().exit(1);
+						break;
+					}
+				} else {
+					_passphrase = _config_rom.xml().attribute_value("passphrase", Passphrase());
+					if (!_passphrase.valid()) {
+						warning("could not obtain valid passphrase from config");
+						_env.parent().exit(1);
+						break;
+					}
+				}
+
+				_state = State::WRITE;
+				_init_file->write_passphrase(_passphrase.string());
+				break;
+			}
 			case State::WRITE:
 				result = _init_file->write_complete();
 				if (result.complete) {
@@ -210,11 +222,14 @@ class Main
 					_init_file->drop_io_job();
 					_init_file.destruct();
 
+					_state = State::COMPLETE;
 					Genode::log("Initialization finished successfully");
 
 					_env.parent().exit(result.success ? 0 : 1);
 					return;
 				}
+				break;
+			case State::COMPLETE:
 				break;
 			}
 		}
@@ -229,21 +244,31 @@ class Main
 		{
 			Xml_node const &config { _config_rom.xml() };
 
-			Passphrase const passphrase =
-				config.attribute_value("passphrase", Passphrase());
-			if (!passphrase.valid()) {
-				error("mandatory 'passphrase' attribute missing");
+			bool const has_passphrase = config.has_attribute("passphrase");
+			if (!has_passphrase && !_use_rom) {
+				error("passphrase missing");
 				throw Missing_config_attribute();
 			}
 
-			String_path ta_dir = _config_ta_dir(_config_rom.xml());
+			using String_path = Genode::String<256>;
+			String_path const ta_dir =
+				config.attribute_value("trust_anchor_dir", String_path());
+			if (!ta_dir.valid()) {
+				error("missing mandatory 'trust_anchor_dir' config attribute");
+				throw Missing_config_attribute();
+			}
 
 			_init_file.construct(ta_dir.string(), "initialize",
 			                     _vfs, _vfs_env.alloc(),
 			                     _io_response_handler);
 
-			/* kick-off writing */
-			_init_file->write_passphrase(passphrase.string());
+			/* using a ROM module takes precedence */
+			if (_use_rom) {
+				_passphrase_rom.construct(_env, "passphrase");
+			}
+
+			/* kick-off */
+			_handle_io();
 		}
 };
 
